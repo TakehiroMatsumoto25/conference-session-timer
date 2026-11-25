@@ -484,8 +484,8 @@
         item.className = 'bell-item';
         const icon = document.createElement('span');
         icon.setAttribute('aria-hidden', 'true');
-        icon.textContent = '🔔 ';
-        item.append(icon, `${formatTime(remaining)} × ${rings}`);
+        icon.textContent = '🔔';
+        item.append(`${formatTime(remaining)} `, icon, ` × ${rings}`);
         return item;
       });
       byId('bell-summary').replaceChildren(...items);
