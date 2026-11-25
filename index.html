@@ -1,0 +1,933 @@
+<!doctype html>
+<html lang="en">
+<head><meta name="robots" content="noindex">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Conference Timer</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: system-ui, sans-serif;
+      color: #fff;
+      background: #000;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: default; }
+    :focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
+    [hidden] { display: none !important; }
+
+    .screen {
+      --gutter: clamp(10px, 1.52vw, 40px);
+      --label-size: clamp(14px, min(3.48dvh, 3.1vw), 42px);
+      display: grid;
+      grid-template-rows: minmax(42px, 10.1dvh) minmax(0, 1fr) auto minmax(52px, 19.2dvh) minmax(28px, 6.85dvh);
+      height: 100vh;
+      height: 100dvh;
+      padding-inline: var(--gutter);
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #999;
+      padding-top: min(2dvh, 16px);
+    }
+
+    h1 { margin: 0; font-size: var(--label-size); font-weight: 400; }
+    .toolbar { display: flex; align-items: center; gap: 2px; }
+    .icon-button {
+      display: grid;
+      place-items: center;
+      inline-size: max(36px, 4.8dvh);
+      block-size: max(36px, 4.8dvh);
+      border: 0;
+      border-radius: 6px;
+      padding: 0;
+      color: inherit;
+      background: transparent;
+    }
+    .icon-button:hover:not(:disabled) { color: #fff; }
+    .icon-button:disabled { opacity: .45; }
+    .gear {
+      --gear-edge: polygon(37% 4%, 63% 4%, 69% 18%, 78% 23%, 93% 22%, 100% 38%, 91% 50%, 100% 62%, 93% 78%, 78% 77%, 69% 82%, 63% 96%, 37% 96%, 31% 82%, 22% 77%, 7% 78%, 0 62%, 9% 50%, 0 38%, 7% 22%, 22% 23%, 31% 18%);
+      position: relative;
+      inline-size: clamp(22px, 3.85dvh, 38px);
+      aspect-ratio: 1;
+      background: currentColor;
+      clip-path: var(--gear-edge);
+    }
+    .gear::before {
+      content: "";
+      position: absolute;
+      inset: 11%;
+      clip-path: var(--gear-edge);
+      background: radial-gradient(circle, #000 18%, transparent 20% 32%, #000 34%);
+    }
+    .corners { position: relative; inline-size: .63em; block-size: .63em; font-size: var(--label-size); }
+    .corners::before, .corners::after {
+      content: "";
+      position: absolute;
+      inline-size: .25em;
+      block-size: .25em;
+      border: max(2px, .095em) solid currentColor;
+      border-radius: 1px;
+    }
+    .corners::before { inset: 0 0 auto auto; border-inline-start: 0; border-block-end: 0; }
+    .corners::after { inset: auto auto 0 0; border-inline-end: 0; border-block-start: 0; }
+    [aria-pressed="true"] .corners { transform: rotate(180deg) scale(.85); }
+
+    .clock {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      position: relative;
+      text-align: center;
+      min-width: 0;
+    }
+    .clock-label { margin: .12em 0 0; color: #ccc; font-size: var(--label-size); font-weight: 400; }
+    .clock-face { display: grid; place-items: center; min-width: 0; }
+    .readout {
+      --digit-width: 3.61;
+      position: relative;
+      display: inline-block;
+      transform: translateY(-1.65dvh);
+      color: #fdfdfd;
+      font: 700 min(48.5dvh, calc(96vw / var(--digit-width)))/.94 Menlo, Consolas, "DejaVu Sans Mono", monospace;
+      font-variant-numeric: tabular-nums slashed-zero;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+    .readout.overtime { color: #ff4b4b; }
+    .sign { position: absolute; inset-inline-end: 100%; inset-block-start: 50%; transform: translateY(-50%); font-size: .6em; }
+    .warning {
+      color: #ffc982;
+      font-size: .95rem;
+      line-height: 1.4;
+    }
+    .screen-warning { position: absolute; inset: auto 0 0; margin: 0 0 .4em; }
+    .progress {
+      height: clamp(4px, 1dvh, 12px);
+      border-radius: 999px;
+      background: #292929;
+      overflow: hidden;
+    }
+    .progress-fill { height: 100%; background: #e2e2e2; border-radius: inherit; transform-origin: left; }
+
+    .controls { display: flex; align-items: center; justify-content: center; gap: min(2.15vw, 4dvh); }
+    .controls button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .28em;
+      width: min(28vw, max(132px, 25.25dvh), 260px);
+      height: clamp(42px, 11.1dvh, 114px);
+      border: 2px solid #696969;
+      border-radius: clamp(8px, 2dvh, 20px);
+      background: #000;
+      color: #fff;
+      font-size: clamp(13px, min(3.85dvh, 3.45vw), 46px);
+      white-space: nowrap;
+    }
+    .controls button:hover:not(:disabled) { background: #202020; border-color: #b0b0b0; }
+    .controls button:disabled { color: #aaa; border-color: #575757; }
+    .play-icon { width: .7em; height: .7em; background: currentColor; clip-path: polygon(0 0, 100% 50%, 0 100%); }
+    .pause-icon { width: .36em; height: .73em; border-inline: .09em solid currentColor; }
+    .reset-icon { font: 1.16em/1 Georgia, serif; }
+    .bell-summary {
+      display: flex;
+      flex-wrap: wrap;
+      align-content: safe center;
+      justify-content: center;
+      gap: .3em 1.9em;
+      overflow: auto;
+      padding-bottom: 1.8dvh;
+      color: #ccc;
+      font-size: var(--label-size);
+      font-variant-numeric: tabular-nums;
+    }
+    .bell-item { white-space: nowrap; }
+
+    dialog {
+      width: min(42rem, calc(100% - 1.5rem));
+      max-height: calc(100dvh - 1.5rem);
+      padding: clamp(16px, 4vw, 30px);
+      border: 1px solid #626262;
+      border-radius: 14px;
+      background: #171717;
+      color: #fff;
+      overflow-y: auto;
+    }
+    dialog::backdrop { background: rgb(0 0 0 / .72); }
+    h2 { margin: 0 0 1.1rem; font-size: 1.45rem; }
+    fieldset { margin: 0; padding: .65rem 0 0; border: 0; min-width: 0; }
+    legend { padding: 0; font-weight: 600; }
+    form { display: grid; gap: 1.2rem; }
+    .duration, .sound-options { display: flex; flex-wrap: wrap; gap: .8rem 1.25rem; }
+    .field { display: grid; gap: .4rem; color: #ddd; font-size: .925rem; }
+    input[type="number"] {
+      width: 100%;
+      min-width: 0;
+      padding: .52rem .55rem;
+      border: 1px solid #696969;
+      border-radius: 6px;
+      background: #0d0d0d;
+      color: #fff;
+    }
+    .duration input, #interval { width: 7.4rem; }
+    input[type="range"], input[type="checkbox"] { accent-color: #ddd; }
+    input[type="range"] { margin-block: .55rem; }
+    table { width: 100%; margin-bottom: .45rem; border-spacing: .4rem .45rem; table-layout: fixed; }
+    th { text-align: start; font-size: .875rem; color: #ccc; font-weight: 400; }
+    th:last-child { width: 4.45rem; }
+    td { padding: 0; }
+    td button { width: 100%; }
+    dialog button {
+      border: 1px solid #737373;
+      border-radius: 6px;
+      background: #202020;
+      color: #fff;
+      padding: .5rem .7rem;
+    }
+    dialog button:hover { background: #373737; }
+    .form-actions { display: flex; flex-wrap: wrap; gap: .65rem; }
+    .form-actions .cancel { margin-inline-start: auto; }
+    .form-actions .save { background: #eee; border-color: #eee; color: #111; }
+    .form-actions .save:hover { background: #ccc; }
+    .check { display: flex; align-items: center; gap: .5rem; width: fit-content; }
+    .check input { inline-size: 1rem; block-size: 1rem; }
+    .errors { margin: 0; padding-inline-start: 1.35em; color: #ff9e9e; font-size: .9rem; }
+    [aria-invalid="true"] { outline: 1px solid #ff9e9e; }
+    .audio-notice { margin: -.65rem 0 0; }
+    details { color: #bdbdbd; font-size: .875rem; line-height: 1.5; }
+    summary { cursor: pointer; width: fit-content; }
+    details p:last-child { margin-bottom: 0; }
+
+    @media (max-height: 460px) {
+      .screen { grid-template-rows: 36px minmax(0, 1fr) auto minmax(44px, 18dvh) minmax(22px, 7dvh); }
+      .top { padding-top: 0; }
+      .readout { font-size: min(43dvh, calc(96vw / var(--digit-width))); transform: translateY(-1dvh); }
+      .controls button { height: clamp(34px, 11dvh, 50px); }
+      .bell-summary { padding-bottom: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="screen">
+    <header class="top">
+      <h1>Conference Timer</h1>
+      <div class="toolbar">
+        <button class="icon-button" id="settings-button" type="button" aria-label="Settings" aria-keyshortcuts="S" title="Settings (S)" disabled>
+          <span class="gear" aria-hidden="true"></span>
+        </button>
+        <button class="icon-button" id="fullscreen" type="button" aria-label="Fullscreen" aria-pressed="false" aria-keyshortcuts="F" title="Fullscreen (F)" disabled>
+          <span class="corners" aria-hidden="true"></span>
+        </button>
+      </div>
+    </header>
+
+    <main class="clock" aria-labelledby="clock-label">
+      <h2 id="clock-label" class="clock-label">TIME REMAINING</h2>
+      <div class="clock-face">
+        <div class="readout" id="readout" role="timer" aria-labelledby="clock-label">
+          <span class="sign" id="sign" hidden>+</span><span id="digits">15:00</span>
+        </div>
+      </div>
+      <p class="warning screen-warning" id="screen-warning" role="status" hidden></p>
+    </main>
+
+    <div class="progress" id="progress" role="progressbar" aria-label="Time remaining" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+
+    <div class="controls">
+      <button id="start" type="button" aria-keyshortcuts="Space" disabled><span class="play-icon" aria-hidden="true"></span>START</button>
+      <button id="pause" type="button" aria-keyshortcuts="Space" disabled><span class="pause-icon" aria-hidden="true"></span>PAUSE</button>
+      <button id="reset" type="button" aria-keyshortcuts="R" disabled><span class="reset-icon" aria-hidden="true">↻</span>RESET</button>
+    </div>
+
+    <footer class="bell-summary" id="bell-summary" aria-label="Scheduled bells"></footer>
+  </div>
+
+  <dialog id="settings-dialog" aria-labelledby="settings-title">
+    <h2 id="settings-title">Settings</h2>
+    <form id="settings-form" novalidate>
+      <fieldset>
+        <legend>Presentation Duration</legend>
+        <div class="duration">
+          <label class="field">Minutes <input id="duration-minutes" type="number" min="0" step="1" required autofocus></label>
+          <label class="field">Seconds <input id="duration-seconds" type="number" min="0" max="59" step="1" required></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Bells</legend>
+        <table>
+          <thead><tr><th scope="col">Remaining Min.</th><th scope="col">Remaining Sec.</th><th scope="col">Rings</th><th scope="col">Action</th></tr></thead>
+          <tbody id="bell-rows"></tbody>
+        </table>
+        <button id="add-bell" type="button">Add Bell</button>
+      </fieldset>
+
+      <div class="sound-options">
+        <div class="field">
+          <label for="volume">Bell Volume <output id="volume-value" for="volume">80%</output></label>
+          <input id="volume" type="range" min="0" max="100" step="1" value="80">
+        </div>
+        <label class="field">Ring Interval (seconds) <input id="interval" type="number" min="0" step="any" required></label>
+      </div>
+      <div><button id="test-bell" type="button">Test Bell</button></div>
+      <p class="warning audio-notice" id="audio-notice" role="status" hidden></p>
+      <label class="check"><input id="overtime" type="checkbox"> Count overtime</label>
+      <ul class="errors" id="errors" role="alert" hidden></ul>
+
+      <div class="form-actions">
+        <button id="restore" type="button">Restore Defaults</button>
+        <button class="cancel" id="cancel" type="button">Cancel</button>
+        <button class="save" type="submit">Save</button>
+      </div>
+
+      <details>
+        <summary>Usage and browser notes</summary>
+        <p>Conference Timer manages presentation time and bells. Open <code>index.html</code> in a desktop browser to run it offline. Open Settings while the timer is stopped to choose a duration and bells. Bell times are measured from the end of the presentation. Select Save to apply your settings.</p>
+        <p>Press Space to start or pause, R to reset, F to toggle fullscreen, S to open Settings and Esc to close it. Use Test Bell to play two strikes with the selected volume and interval. Keep the tab visible and the computer awake during a session. Browser audio permissions, sleep and background throttling may delay or prevent bells. Some browsers may limit settings storage when opening a local file.</p>
+        <p>To publish, push <code>index.html</code> to the repository root. In the repository's Settings → Pages, select the publishing branch and its root folder.</p>
+        <p lang="ja">学会発表用のタイマーです。<code>index.html</code> をPCのブラウザで直接開くとオフラインで使えます。停止中に Settings を開き、発表時間と、残り時間で指定するベルを設定して Save を押します。Space で開始・一時停止、R でリセット、F で全画面、S で設定、Esc で設定を閉じます。</p>
+        <p lang="ja">Test Bell では設定した音量と間隔でベルが2回鳴ります。本番中はタブを表示し、PCをスリープさせないでください。音声再生制限やバックグラウンド制限によってベルが遅れたり鳴らなかったりすることがあります。ローカルファイルで設定の保存が制限される場合があります。公開するには、GitHub のリポジトリのルートに <code>index.html</code> をプッシュし、Settings → Pages から公開ブランチとルートフォルダを指定します。</p>
+      </details>
+    </form>
+  </dialog>
+
+  <template id="bell-row-template">
+    <tr>
+      <td><input type="number" min="0" step="1" required></td>
+      <td><input type="number" min="0" max="59" step="1" required></td>
+      <td><input type="number" min="1" step="1" required></td>
+      <td><button type="button">Delete</button></td>
+    </tr>
+  </template>
+
+  <script>
+    'use strict';
+
+    const byId = (id) => document.getElementById(id);
+    const startButton = byId('start');
+    const pauseButton = byId('pause');
+    const resetButton = byId('reset');
+    const settingsButton = byId('settings-button');
+    const fullscreenButton = byId('fullscreen');
+    const dialog = byId('settings-dialog');
+    const form = byId('settings-form');
+    const bellRows = byId('bell-rows');
+    const errors = byId('errors');
+    const readout = byId('readout');
+    const digits = byId('digits');
+    const sign = byId('sign');
+    const progress = byId('progress');
+    const progressFill = byId('progress-fill');
+    const durationMinutes = byId('duration-minutes');
+    const durationSeconds = byId('duration-seconds');
+    const volumeInput = byId('volume');
+    const intervalInput = byId('interval');
+    const overtimeInput = byId('overtime');
+    const storageKey = 'conference-timer-settings-v1';
+    const maxDuration = Math.floor(Number.MAX_SAFE_INTEGER / 1000);
+    const maxTimeout = 2147483647;
+
+    const defaultSettings = () => ({
+      duration: 900,
+      bells: [{ remaining: 300, rings: 1 }, { remaining: 0, rings: 2 }],
+      volume: 80,
+      interval: 1,
+      overtime: true
+    });
+
+    function integerInRange(value, min, max = Number.MAX_SAFE_INTEGER) {
+      return Number.isSafeInteger(value) && value >= min && value <= max;
+    }
+
+    // 保存データを検証してから使用し、読み込めない場合は初期値で起動する。
+    function loadSettings() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey));
+        if (saved && integerInRange(saved.duration, 1, maxDuration) &&
+            integerInRange(saved.volume, 0, 100) && Number.isFinite(saved.interval) && saved.interval > 0 &&
+            typeof saved.overtime === 'boolean' && Array.isArray(saved.bells) &&
+            saved.bells.every((bell) => bell && integerInRange(bell.remaining, 0, saved.duration) && integerInRange(bell.rings, 1)) &&
+            new Set(saved.bells.map((bell) => bell.remaining)).size === saved.bells.length) {
+          saved.bells.sort((a, b) => b.remaining - a.remaining);
+          return saved;
+        }
+      } catch {
+        // ストレージが無効な環境でもタイマーは使用できる。
+      }
+      return defaultSettings();
+    }
+
+    let settings = loadSettings();
+    let state = 'idle';
+    let elapsedBeforeStart = 0;
+    let startedAt = 0;
+    let previousRemaining = Infinity;
+    let nextBell = 0;
+    let frame = 0;
+    let deadline = 0;
+    let wakeLock = null;
+    let wakeLockPending = false;
+    let audioContext;
+    let bellBuffer;
+    let audioMessage = '';
+    let screenMessage = '';
+    let timerAudioAttempt = 0;
+    let testAudioAttempt = 0;
+
+    function formatTime(totalSeconds) {
+      const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+      const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+      return `${minutes}:${seconds}`;
+    }
+
+    function showMessage(element, message) {
+      element.textContent = message;
+      element.hidden = !message;
+    }
+
+    function renderScreenWarning() {
+      showMessage(byId('screen-warning'), [audioMessage, screenMessage].filter(Boolean).join(' '));
+    }
+
+    // 画面の更新頻度とは独立に、単調増加する時計から経過時間を求める。
+    function elapsed(now = performance.now()) {
+      return elapsedBeforeStart + (state === 'running' ? now - startedAt : 0);
+    }
+
+    function render(remaining) {
+      const overtime = remaining <= -1000;
+      const seconds = overtime ? Math.floor(-remaining / 1000) : Math.max(0, Math.ceil(remaining / 1000));
+      const time = formatTime(seconds);
+      if (digits.textContent !== time) digits.textContent = time;
+      if (sign.hidden === overtime) {
+        sign.hidden = !overtime;
+        readout.classList.toggle('overtime', overtime);
+        byId('clock-label').textContent = overtime ? 'OVERTIME' : 'TIME REMAINING';
+      }
+      const width = Math.max(time.length, formatTime(settings.duration).length);
+      readout.style.setProperty('--digit-width', width * .604 + (overtime ? .75 : .59));
+
+      const ratio = Math.max(0, Math.min(1, remaining / (settings.duration * 1000)));
+      progressFill.style.transform = `scaleX(${ratio})`;
+      const percent = String(Math.round(ratio * 100));
+      if (progress.getAttribute('aria-valuenow') !== percent) progress.setAttribute('aria-valuenow', percent);
+    }
+
+    function renderButtons() {
+      startButton.disabled = state === 'running' || state === 'finished';
+      pauseButton.disabled = state !== 'running';
+      resetButton.disabled = state === 'idle';
+      settingsButton.disabled = state === 'running';
+    }
+
+    function renderBells() {
+      const items = settings.bells.map(({ remaining, rings }) => {
+        const item = document.createElement('span');
+        item.className = 'bell-item';
+        const icon = document.createElement('span');
+        icon.setAttribute('aria-hidden', 'true');
+        icon.textContent = '🔔 ';
+        item.append(icon, `${formatTime(remaining)} × ${rings}`);
+        return item;
+      });
+      byId('bell-summary').replaceChildren(...items);
+    }
+
+    // 減衰速度の異なる金属音の倍音と、打撃の短い音を合成する。
+    function synthesizeBell(context) {
+      const duration = .93;
+      const buffer = context.createBuffer(1, Math.ceil(context.sampleRate * duration), context.sampleRate);
+      const samples = buffer.getChannelData(0);
+      const modes = [[980, .36, .22], [1489, .10, .16], [2183, .23, .13], [2947, .15, .10], [3872, .10, .057], [5291, .065, .037]];
+      for (const [frequency, amplitude, decay] of modes) {
+        for (let index = 0; index < samples.length; index++) {
+          const time = index / buffer.sampleRate;
+          samples[index] += amplitude * Math.sin(2 * Math.PI * frequency * time) * Math.exp(-time / decay);
+        }
+      }
+      for (let index = 0; index < samples.length; index++) {
+        const time = index / buffer.sampleRate;
+        const impact = (Math.random() * 2 - 1) * .11 * Math.exp(-time / .004);
+        samples[index] = (samples[index] + impact) * Math.min(1, time / .0014, (duration - time) / .055);
+      }
+      return buffer;
+    }
+
+    // START または Test Bell の操作から AudioContext を起動・再開する。
+    async function enableAudio() {
+      let timeout;
+      try {
+        const Context = window.AudioContext || window.webkitAudioContext;
+        if (!Context) return false;
+        if (!audioContext || audioContext.state === 'closed') {
+          audioContext = new Context();
+          bellBuffer = null;
+          audioContext.addEventListener('statechange', () => {
+            timerBells.playNext();
+            testBells.playNext();
+          });
+        }
+        if (audioContext.state !== 'running') {
+          await Promise.race([audioContext.resume(), new Promise((resolve) => { timeout = setTimeout(resolve, 1500); })]);
+        }
+        if (audioContext.state !== 'running') return false;
+        bellBuffer ??= synthesizeBell(audioContext);
+        return true;
+      } catch {
+        return false;
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
+    // ベルを順番に再生し、各グループの最後の音が終わってから次へ進む。
+    class BellQueue {
+      groups = [];
+      active = new Set();
+      nextAt = 0;
+      timeout = 0;
+      paused = false;
+
+      enqueue(rings, volume, interval) {
+        if (volume === 0) return;
+        this.groups.push({ rings, volume, interval });
+        this.playNext();
+      }
+
+      schedule(now) {
+        const delay = Math.min(maxTimeout, Math.max(1, Math.ceil((this.nextAt - now) * 1000)));
+        this.timeout = setTimeout(() => this.playNext(), delay);
+      }
+
+      playNext() {
+        clearTimeout(this.timeout);
+        if (this.paused || !this.groups.length || audioContext?.state !== 'running' || !bellBuffer) return;
+        const now = audioContext.currentTime;
+        if (now < this.nextAt) {
+          this.schedule(now);
+          return;
+        }
+
+        const group = this.groups[0];
+        const source = audioContext.createBufferSource();
+        const gain = audioContext.createGain();
+        const duration = group.rings > 1 ? Math.min(group.interval, bellBuffer.duration) : bellBuffer.duration;
+        const end = now + duration;
+        source.buffer = bellBuffer;
+        source.connect(gain).connect(audioContext.destination);
+        gain.gain.setValueAtTime(group.volume / 100, now);
+        gain.gain.setValueAtTime(group.volume / 100, end - Math.min(.025, duration / 2));
+        gain.gain.linearRampToValueAtTime(0, end);
+        source.addEventListener('ended', () => {
+          source.disconnect();
+          gain.disconnect();
+          this.active.delete(source);
+        }, { once: true });
+        this.active.add(source);
+        source.start(now, 0, duration);
+
+        group.rings--;
+        this.nextAt = group.rings ? now + group.interval : end + .05;
+        if (group.rings === 0) this.groups.shift();
+        if (this.groups.length) this.schedule(now);
+      }
+
+      pause() {
+        this.paused = true;
+        clearTimeout(this.timeout);
+      }
+
+      resume() {
+        this.paused = false;
+        this.playNext();
+      }
+
+      clear() {
+        clearTimeout(this.timeout);
+        this.groups.length = 0;
+        this.nextAt = 0;
+        this.paused = false;
+        for (const source of this.active) source.stop();
+        this.active.clear();
+      }
+    }
+
+    const timerBells = new BellQueue();
+    const testBells = new BellQueue();
+
+    // 残り時間が設定時刻を通過した順に処理する。添字を進めて重複再生を防ぐ。
+    function renderRunningTime(now = performance.now()) {
+      const remaining = settings.duration * 1000 - elapsed(now);
+      for (; nextBell < settings.bells.length; nextBell++) {
+        const bell = settings.bells[nextBell];
+        const threshold = bell.remaining * 1000;
+        if (threshold < remaining) break;
+        if (threshold < previousRemaining) timerBells.enqueue(bell.rings, settings.volume, settings.interval);
+      }
+      previousRemaining = remaining;
+      if (!settings.overtime && remaining <= 0) {
+        state = 'finished';
+        elapsedBeforeStart = settings.duration * 1000;
+        stopUpdates();
+        renderButtons();
+        syncWakeLock();
+      }
+      render(remaining < 0 && !settings.overtime ? 0 : remaining);
+    }
+
+    function tick() {
+      if (state !== 'running') return;
+      renderRunningTime();
+      if (state === 'running') frame = requestAnimationFrame(tick);
+    }
+
+    // フレームが止まるバックグラウンドでも、可能ならベルの締切で時刻を再確認する。
+    function setBellDeadline() {
+      clearTimeout(deadline);
+      if (state !== 'running') return;
+      const upcoming = settings.bells[nextBell];
+      if (!upcoming && settings.overtime) return;
+      const target = (settings.duration - (upcoming?.remaining ?? 0)) * 1000;
+      const delay = Math.max(1, Math.min(maxTimeout, Math.ceil(target - elapsed())));
+      deadline = setTimeout(() => {
+        if (state !== 'running') return;
+        renderRunningTime();
+        setBellDeadline();
+      }, delay);
+    }
+
+    function stopUpdates() {
+      cancelAnimationFrame(frame);
+      clearTimeout(deadline);
+    }
+
+    function start() {
+      if (startButton.disabled || dialog.open) return;
+      const attempt = ++timerAudioAttempt;
+      enableAudio().then((ready) => {
+        if (attempt !== timerAudioAttempt) return;
+        audioMessage = ready ? '' : 'Bell audio is unavailable. Check your browser audio settings.';
+        renderScreenWarning();
+        if (ready) timerBells.playNext();
+      });
+
+      startedAt = performance.now();
+      state = 'running';
+      timerBells.resume();
+      renderButtons();
+      tick();
+      setBellDeadline();
+      syncWakeLock();
+    }
+
+    function pause() {
+      if (state !== 'running') return;
+      elapsedBeforeStart = elapsed();
+      if (!settings.overtime) elapsedBeforeStart = Math.min(elapsedBeforeStart, settings.duration * 1000);
+      state = 'paused';
+      timerBells.pause();
+      stopUpdates();
+      render(settings.duration * 1000 - elapsedBeforeStart);
+      renderButtons();
+      syncWakeLock();
+    }
+
+    function reset() {
+      state = 'idle';
+      elapsedBeforeStart = 0;
+      previousRemaining = Infinity;
+      nextBell = 0;
+      timerAudioAttempt++;
+      stopUpdates();
+      timerBells.clear();
+      audioMessage = '';
+      renderScreenWarning();
+      render(settings.duration * 1000);
+      renderButtons();
+      syncWakeLock();
+    }
+
+    // 動作中にのみ画面の消灯を抑止し、表示復帰時に必要な場合は再取得する。
+    async function syncWakeLock() {
+      const needed = () => state === 'running' && document.visibilityState === 'visible';
+      if (!needed()) {
+        const lock = wakeLock;
+        wakeLock = null;
+        if (lock) await lock.release().catch(() => {});
+        return;
+      }
+      if (!navigator.wakeLock || wakeLock || wakeLockPending) return;
+      wakeLockPending = true;
+      try {
+        const lock = await navigator.wakeLock.request('screen');
+        if (!needed()) {
+          await lock.release();
+          return;
+        }
+        wakeLock = lock;
+        lock.addEventListener('release', () => {
+          if (wakeLock === lock) wakeLock = null;
+        }, { once: true });
+      } catch {
+        // Wake Lock の可否にかかわらず、タイマーの計測を続ける。
+      } finally {
+        wakeLockPending = false;
+      }
+    }
+
+    function refreshBellRows() {
+      Array.from(bellRows.rows).forEach((row, index) => {
+        const labels = ['Remaining minutes', 'Remaining seconds', 'Rings'];
+        row.querySelectorAll('input').forEach((input, field) => input.setAttribute('aria-label', `Bell ${index + 1}: ${labels[field]}`));
+        row.querySelector('button').setAttribute('aria-label', `Delete bell ${index + 1}`);
+      });
+    }
+
+    function addBell({ remaining = 0, rings = 1 } = {}) {
+      const row = byId('bell-row-template').content.firstElementChild.cloneNode(true);
+      const [minutes, seconds, count] = row.querySelectorAll('input');
+      minutes.value = Math.floor(remaining / 60);
+      seconds.value = remaining % 60;
+      count.value = rings;
+      row.querySelector('button').addEventListener('click', () => {
+        const next = row.nextElementSibling || row.previousElementSibling;
+        row.remove();
+        refreshBellRows();
+        clearErrors();
+        (next?.querySelector('button') || byId('add-bell')).focus();
+      });
+      bellRows.append(row);
+      return minutes;
+    }
+
+    function updateVolume() {
+      byId('volume-value').value = `${volumeInput.value}%`;
+    }
+
+    function clearErrors() {
+      errors.hidden = true;
+      errors.replaceChildren();
+      for (const input of form.querySelectorAll('[aria-invalid]')) {
+        input.removeAttribute('aria-invalid');
+        input.removeAttribute('aria-describedby');
+      }
+    }
+
+    function populateForm(values) {
+      durationMinutes.value = Math.floor(values.duration / 60);
+      durationSeconds.value = values.duration % 60;
+      volumeInput.value = values.volume;
+      intervalInput.value = values.interval === 1 ? '1.0' : values.interval;
+      overtimeInput.checked = values.overtime;
+      bellRows.replaceChildren();
+      values.bells.forEach(addBell);
+      refreshBellRows();
+      updateVolume();
+      clearErrors();
+    }
+
+    function openSettings() {
+      if (state === 'running' || dialog.open) return;
+      populateForm(settings);
+      showMessage(byId('audio-notice'), '');
+      dialog.showModal();
+    }
+
+    function stopTestBell() {
+      testAudioAttempt++;
+      testBells.clear();
+    }
+
+    // 保存前に項目ごとの範囲と、ベルの残り時刻の重複を検査する。
+    function readForm(soundOnly = false) {
+      clearErrors();
+      let firstInvalid;
+      function error(input, message) {
+        const item = document.createElement('li');
+        item.id = `error-${errors.childElementCount + 1}`;
+        item.textContent = message;
+        errors.append(item);
+        input.setAttribute('aria-invalid', 'true');
+        input.setAttribute('aria-describedby', item.id);
+        firstInvalid ??= input;
+      }
+
+      const interval = intervalInput.valueAsNumber;
+      if (!Number.isFinite(interval) || interval <= 0) error(intervalInput, 'Ring Interval must be greater than 0 seconds.');
+      const values = { interval, volume: volumeInput.valueAsNumber, overtime: overtimeInput.checked, bells: [] };
+
+      if (!soundOnly) {
+        function readTime(minutes, seconds, label) {
+          const min = minutes.valueAsNumber;
+          const sec = seconds.valueAsNumber;
+          if (!integerInRange(min, 0, Math.floor(maxDuration / 60))) error(minutes, `${label} minutes must be a non-negative whole number within range.`);
+          if (!integerInRange(sec, 0, 59)) error(seconds, `${label} seconds must be a whole number from 0 to 59.`);
+          if (minutes.hasAttribute('aria-invalid') || seconds.hasAttribute('aria-invalid')) return NaN;
+          const total = min * 60 + sec;
+          if (total > maxDuration) {
+            error(minutes, `${label} exceeds the supported duration.`);
+            return NaN;
+          }
+          return total;
+        }
+
+        values.duration = readTime(durationMinutes, durationSeconds, 'Presentation');
+        if (values.duration === 0) error(durationSeconds, 'Presentation Duration must be at least one second.');
+        const times = new Map();
+        Array.from(bellRows.rows).forEach((row, index) => {
+          const [minutes, seconds, count] = row.querySelectorAll('input');
+          const label = `Bell ${index + 1}`;
+          const remaining = readTime(minutes, seconds, label);
+          const rings = count.valueAsNumber;
+          if (!integerInRange(rings, 1)) error(count, `${label} rings must be a positive whole number within range.`);
+          if (remaining > values.duration) error(minutes, `${label} time must be within the presentation duration.`);
+          if (Number.isFinite(remaining)) {
+            if (times.has(remaining)) {
+              error(minutes, `${label} is set to the same remaining time as Bell ${times.get(remaining)}.`);
+            } else {
+              times.set(remaining, index + 1);
+            }
+          }
+          values.bells.push({ remaining, rings });
+        });
+        values.bells.sort((a, b) => b.remaining - a.remaining);
+      }
+
+      if (firstInvalid) {
+        errors.hidden = false;
+        firstInvalid.focus();
+        return null;
+      }
+      return values;
+    }
+
+    function saveSettings(event) {
+      event.preventDefault();
+      const values = readForm();
+      if (!values) return;
+      settings = values;
+      screenMessage = '';
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(settings));
+      } catch {
+        screenMessage = 'Settings applied for this session. This browser could not store them.';
+      }
+      stopTestBell();
+      dialog.close();
+      renderBells();
+      reset();
+    }
+
+    async function testBell() {
+      const sound = readForm(true);
+      if (!sound) return;
+      stopTestBell();
+      const attempt = testAudioAttempt;
+      const notice = byId('audio-notice');
+      showMessage(notice, '');
+      const ready = await enableAudio();
+      if (attempt !== testAudioAttempt || !dialog.open) return;
+      if (!ready) {
+        showMessage(notice, 'Bell audio is unavailable. Check your browser audio settings.');
+        return;
+      }
+      if (sound.volume === 0) showMessage(notice, 'Bell volume is 0%.');
+      testBells.enqueue(2, sound.volume, sound.interval);
+    }
+
+    const root = document.documentElement;
+    const requestFullscreen = root.requestFullscreen || root.webkitRequestFullscreen;
+    const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
+    const isFullscreen = () => Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+
+    function renderFullscreen() {
+      const active = isFullscreen();
+      fullscreenButton.setAttribute('aria-pressed', active);
+      fullscreenButton.setAttribute('aria-label', active ? 'Exit fullscreen' : 'Fullscreen');
+      fullscreenButton.title = active ? 'Exit fullscreen (F)' : 'Fullscreen (F)';
+    }
+
+    async function toggleFullscreen() {
+      if (fullscreenButton.disabled) return;
+      try {
+        if (isFullscreen()) await exitFullscreen.call(document);
+        else await requestFullscreen.call(root);
+        screenMessage = '';
+      } catch {
+        screenMessage = 'Fullscreen is unavailable in this browser window.';
+      }
+      renderScreenWarning();
+    }
+
+    startButton.addEventListener('click', start);
+    pauseButton.addEventListener('click', pause);
+    resetButton.addEventListener('click', reset);
+    settingsButton.addEventListener('click', openSettings);
+    fullscreenButton.disabled = !requestFullscreen || !exitFullscreen;
+    fullscreenButton.addEventListener('click', toggleFullscreen);
+    document.addEventListener('fullscreenchange', renderFullscreen);
+    document.addEventListener('webkitfullscreenchange', renderFullscreen);
+    document.addEventListener('visibilitychange', () => {
+      if (state === 'running' && !document.hidden) {
+        renderRunningTime();
+        setBellDeadline();
+      }
+      syncWakeLock();
+    });
+
+    byId('add-bell').addEventListener('click', () => {
+      const input = addBell();
+      refreshBellRows();
+      clearErrors();
+      input.focus();
+    });
+    byId('test-bell').addEventListener('click', testBell);
+    byId('restore').addEventListener('click', () => {
+      stopTestBell();
+      showMessage(byId('audio-notice'), '');
+      populateForm(defaultSettings());
+    });
+    byId('cancel').addEventListener('click', () => {
+      stopTestBell();
+      dialog.close();
+    });
+    dialog.addEventListener('cancel', stopTestBell);
+    volumeInput.addEventListener('input', updateVolume);
+    form.addEventListener('submit', saveSettings);
+
+    document.addEventListener('keydown', (event) => {
+      if (dialog.open || event.defaultPrevented || event.isComposing || event.ctrlKey || event.metaKey || event.altKey ||
+          event.target.closest('input, select, textarea, [contenteditable]')) return;
+      switch (event.key.toLowerCase()) {
+        case ' ':
+          event.preventDefault();
+          if (!event.repeat) state === 'running' ? pause() : start();
+          break;
+        case 'r':
+          if (!event.repeat) reset();
+          break;
+        case 'f':
+          if (!event.repeat) toggleFullscreen();
+          break;
+        case 's':
+          if (!event.repeat) openSettings();
+          break;
+      }
+    });
+
+    renderBells();
+    reset();
+  </script>
+</body>
+</html>
