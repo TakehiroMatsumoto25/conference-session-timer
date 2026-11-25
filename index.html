@@ -125,8 +125,16 @@
       font-family: "Courier New", Courier, "Liberation Mono", monospace;
       font-variant-numeric: tabular-nums;
     }
+    .timer-numerals[data-timer-font="verdana"] {
+      font-family: Verdana, Arial, sans-serif;
+      font-variant-numeric: tabular-nums;
+      --digit-advance: .72;
+    }
     .readout {
-      --digit-width: 3.61;
+      --digit-count: 5;
+      --digit-advance: .604;
+      --sign-space: .59;
+      --digit-width: calc(var(--digit-count) * var(--digit-advance) + var(--sign-space));
       position: relative;
       display: inline-block;
       transform: translateY(-1.65dvh);
@@ -136,7 +144,7 @@
       letter-spacing: 0;
       white-space: nowrap;
     }
-    .readout.overtime { color: #ff4b4b; }
+    .readout.overtime { --sign-space: .75; color: #ff4b4b; }
     .sign { position: absolute; inset-inline-end: 100%; inset-block-start: 50%; transform: translateY(-50%); font-size: .6em; }
     .warning {
       color: #ffc982;
@@ -336,6 +344,7 @@
             <option value="arial">Arial</option>
             <option value="system-sans">System Sans Serif</option>
             <option value="courier">Courier</option>
+            <option value="verdana">Verdana</option>
           </select>
         </label>
         <span class="font-preview timer-numerals" id="font-preview" aria-hidden="true">15:00</span>
@@ -502,7 +511,7 @@
         byId('clock-label').textContent = overtime ? 'OVERTIME' : 'TIME REMAINING';
       }
       const width = Math.max(time.length, formatTime(settings.duration).length);
-      readout.style.setProperty('--digit-width', width * .604 + (overtime ? .75 : .59));
+      readout.style.setProperty('--digit-count', width);
 
       const ratio = Math.max(0, Math.min(1, remaining / (settings.duration * 1000)));
       progressFill.style.transform = `scaleX(${ratio})`;
