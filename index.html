@@ -15,7 +15,7 @@
 
     * { box-sizing: border-box; }
     body { margin: 0; }
-    button, input { font: inherit; }
+    button, input, select { font: inherit; }
     button { cursor: pointer; }
     button:disabled { cursor: default; }
     :focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
@@ -80,7 +80,24 @@
     }
     .corners::before { inset: 0 0 auto auto; border-inline-start: 0; border-block-end: 0; }
     .corners::after { inset: auto auto 0 0; border-inline-end: 0; border-block-start: 0; }
-    [aria-pressed="true"] .corners { transform: rotate(180deg) scale(.85); }
+    .restore-corners {
+      display: none;
+      grid-template: repeat(2, 1fr) / repeat(2, 1fr);
+      gap: .14em;
+      inline-size: .76em;
+      block-size: .76em;
+      font-size: max(22px, var(--label-size));
+    }
+    .restore-corners span {
+      border-right: max(2px, .095em) solid currentColor;
+      border-bottom: max(2px, .095em) solid currentColor;
+      border-radius: 1px;
+    }
+    .restore-corners span:nth-child(2) { transform: rotate(90deg); }
+    .restore-corners span:nth-child(3) { transform: rotate(-90deg); }
+    .restore-corners span:nth-child(4) { transform: rotate(180deg); }
+    [aria-pressed="true"] .corners { display: none; }
+    [aria-pressed="true"] .restore-corners { display: grid; }
 
     .clock {
       display: grid;
@@ -169,7 +186,7 @@
     form { display: grid; gap: 1.2rem; }
     .duration, .sound-options { display: flex; flex-wrap: wrap; gap: .8rem 1.25rem; }
     .field { display: grid; gap: .4rem; color: #ddd; font-size: .925rem; }
-    input[type="number"] {
+    input[type="number"], select {
       width: 100%;
       min-width: 0;
       padding: .52rem .55rem;
@@ -179,6 +196,7 @@
       color: #fff;
     }
     .duration input, #interval { width: 7.4rem; }
+    #interval::-webkit-inner-spin-button { opacity: 1; }
     input[type="range"], input[type="checkbox"] { accent-color: #ddd; }
     input[type="range"] { margin-block: .55rem; }
     table { width: 100%; margin-bottom: .45rem; border-spacing: .4rem .45rem; table-layout: fixed; }
@@ -226,6 +244,7 @@
         </button>
         <button class="icon-button" id="fullscreen" type="button" aria-label="Fullscreen" aria-pressed="false" aria-keyshortcuts="F" title="Fullscreen (F)" disabled>
           <span class="corners" aria-hidden="true"></span>
+          <span class="restore-corners" aria-hidden="true"><span></span><span></span><span></span><span></span></span>
         </button>
       </div>
     </header>
@@ -278,7 +297,14 @@
           <label for="volume">Bell Volume <output id="volume-value" for="volume">80%</output></label>
           <input id="volume" type="range" min="0" max="100" step="1" value="80">
         </div>
-        <label class="field">Ring Interval (seconds) <input id="interval" type="number" min="0" step="any" required></label>
+        <label class="field">Ring Interval (seconds) <input id="interval" type="number" min="0.5" step="0.5" required></label>
+        <label class="field">Bell Tone
+          <select id="bell-tone">
+            <option value="desk">Desk Bell</option>
+            <option value="bright">Bright Bell</option>
+            <option value="chime">Soft Chime</option>
+          </select>
+        </label>
       </div>
       <div><button id="test-bell" type="button">Test Bell</button></div>
       <p class="warning audio-notice" id="audio-notice" role="status" hidden></p>
@@ -294,10 +320,10 @@
       <details>
         <summary>Usage and browser notes</summary>
         <p>Conference Timer manages presentation time and bells. Open <code>index.html</code> in a desktop browser to run it offline. Open Settings while the timer is stopped to choose a duration and bells. Bell times are measured from the end of the presentation. Select Save to apply your settings.</p>
-        <p>Press Space to start or pause, R to reset, F to toggle fullscreen, S to open Settings and Esc to close it. Use Test Bell to play two strikes with the selected volume and interval. Keep the tab visible and the computer awake during a session. Browser audio permissions, sleep and background throttling may delay or prevent bells. Some browsers may limit settings storage when opening a local file.</p>
+        <p>Press Space to start or pause, R to reset, F to toggle fullscreen, S to open Settings and Esc to close it. Use Test Bell to play two strikes with the selected tone, volume and interval. Keep the tab visible and the computer awake during a session. Browser audio permissions, sleep and background throttling may delay or prevent bells. Some browsers may limit settings storage when opening a local file.</p>
         <p>To publish, push <code>index.html</code> to the repository root. In the repository's Settings → Pages, select the publishing branch and its root folder.</p>
         <p lang="ja">学会発表用のタイマーです。<code>index.html</code> をPCのブラウザで直接開くとオフラインで使えます。停止中に Settings を開き、発表時間と、残り時間で指定するベルを設定して Save を押します。Space で開始・一時停止、R でリセット、F で全画面、S で設定、Esc で設定を閉じます。</p>
-        <p lang="ja">Test Bell では設定した音量と間隔でベルが2回鳴ります。本番中はタブを表示し、PCをスリープさせないでください。音声再生制限やバックグラウンド制限によってベルが遅れたり鳴らなかったりすることがあります。ローカルファイルで設定の保存が制限される場合があります。公開するには、GitHub のリポジトリのルートに <code>index.html</code> をプッシュし、Settings → Pages から公開ブランチとルートフォルダを指定します。</p>
+        <p lang="ja">Test Bell では設定した音色、音量、間隔でベルが2回鳴ります。本番中はタブを表示し、PCをスリープさせないでください。音声再生制限やバックグラウンド制限によってベルが遅れたり鳴らなかったりすることがあります。ローカルファイルで設定の保存が制限される場合があります。公開するには、GitHub のリポジトリのルートに <code>index.html</code> をプッシュし、Settings → Pages から公開ブランチとルートフォルダを指定します。</p>
       </details>
     </form>
   </dialog>
@@ -333,16 +359,36 @@
     const durationSeconds = byId('duration-seconds');
     const volumeInput = byId('volume');
     const intervalInput = byId('interval');
+    const toneInput = byId('bell-tone');
     const overtimeInput = byId('overtime');
     const storageKey = 'conference-timer-settings-v1';
     const maxDuration = Math.floor(Number.MAX_SAFE_INTEGER / 1000);
     const maxTimeout = 2147483647;
+    const bellTones = {
+      desk: {
+        duration: .93,
+        impact: .11,
+        modes: [[980, .36, .22], [1489, .10, .16], [2183, .23, .13], [2947, .15, .10], [3872, .10, .057], [5291, .065, .037]]
+      },
+      bright: {
+        duration: .76,
+        impact: .13,
+        modes: [[1480, .31, .17], [2280, .12, .13], [3260, .26, .14], [4410, .16, .09], [5980, .10, .055]]
+      },
+      chime: {
+        duration: 1.14,
+        impact: .025,
+        modes: [[659, .39, .30], [1319, .19, .21], [1978, .095, .17], [2800, .065, .10]]
+      }
+    };
+    const defaultTone = 'desk';
 
     const defaultSettings = () => ({
       duration: 900,
       bells: [{ remaining: 300, rings: 1 }, { remaining: 0, rings: 2 }],
       volume: 80,
-      interval: 1,
+      interval: 0.5,
+      tone: defaultTone,
       overtime: true
     });
 
@@ -360,6 +406,7 @@
             saved.bells.every((bell) => bell && integerInRange(bell.remaining, 0, saved.duration) && integerInRange(bell.rings, 1)) &&
             new Set(saved.bells.map((bell) => bell.remaining)).size === saved.bells.length) {
           saved.bells.sort((a, b) => b.remaining - a.remaining);
+          if (!Object.hasOwn(bellTones, saved.tone)) saved.tone = defaultTone;
           return saved;
         }
       } catch {
@@ -379,7 +426,7 @@
     let wakeLock = null;
     let wakeLockPending = false;
     let audioContext;
-    let bellBuffer;
+    const bellBuffers = new Map();
     let audioMessage = '';
     let screenMessage = '';
     let timerAudioAttempt = 0;
@@ -445,11 +492,9 @@
     }
 
     // 減衰速度の異なる金属音の倍音と、打撃の短い音を合成する。
-    function synthesizeBell(context) {
-      const duration = .93;
+    function synthesizeBell(context, { duration, impact, modes }) {
       const buffer = context.createBuffer(1, Math.ceil(context.sampleRate * duration), context.sampleRate);
       const samples = buffer.getChannelData(0);
-      const modes = [[980, .36, .22], [1489, .10, .16], [2183, .23, .13], [2947, .15, .10], [3872, .10, .057], [5291, .065, .037]];
       for (const [frequency, amplitude, decay] of modes) {
         for (let index = 0; index < samples.length; index++) {
           const time = index / buffer.sampleRate;
@@ -458,21 +503,21 @@
       }
       for (let index = 0; index < samples.length; index++) {
         const time = index / buffer.sampleRate;
-        const impact = (Math.random() * 2 - 1) * .11 * Math.exp(-time / .004);
-        samples[index] = (samples[index] + impact) * Math.min(1, time / .0014, (duration - time) / .055);
+        const strike = (Math.random() * 2 - 1) * impact * Math.exp(-time / .004);
+        samples[index] = (samples[index] + strike) * Math.min(1, time / .0014, (duration - time) / .055);
       }
       return buffer;
     }
 
     // START または Test Bell の操作から AudioContext を起動・再開する。
-    async function enableAudio() {
+    async function enableAudio(tone) {
       let timeout;
       try {
         const Context = window.AudioContext || window.webkitAudioContext;
         if (!Context) return false;
         if (!audioContext || audioContext.state === 'closed') {
           audioContext = new Context();
-          bellBuffer = null;
+          bellBuffers.clear();
           audioContext.addEventListener('statechange', () => {
             timerBells.playNext();
             testBells.playNext();
@@ -482,7 +527,7 @@
           await Promise.race([audioContext.resume(), new Promise((resolve) => { timeout = setTimeout(resolve, 1500); })]);
         }
         if (audioContext.state !== 'running') return false;
-        bellBuffer ??= synthesizeBell(audioContext);
+        if (!bellBuffers.has(tone)) bellBuffers.set(tone, synthesizeBell(audioContext, bellTones[tone]));
         return true;
       } catch {
         return false;
@@ -499,9 +544,9 @@
       timeout = 0;
       paused = false;
 
-      enqueue(rings, volume, interval) {
+      enqueue(rings, { volume, interval, tone }) {
         if (volume === 0) return;
-        this.groups.push({ rings, volume, interval });
+        this.groups.push({ rings, volume, interval, tone });
         this.playNext();
       }
 
@@ -512,14 +557,16 @@
 
       playNext() {
         clearTimeout(this.timeout);
-        if (this.paused || !this.groups.length || audioContext?.state !== 'running' || !bellBuffer) return;
+        if (this.paused || !this.groups.length || audioContext?.state !== 'running') return;
+        const group = this.groups[0];
+        const bellBuffer = bellBuffers.get(group.tone);
+        if (!bellBuffer) return;
         const now = audioContext.currentTime;
         if (now < this.nextAt) {
           this.schedule(now);
           return;
         }
 
-        const group = this.groups[0];
         const source = audioContext.createBufferSource();
         const gain = audioContext.createGain();
         const duration = group.rings > 1 ? Math.min(group.interval, bellBuffer.duration) : bellBuffer.duration;
@@ -573,7 +620,7 @@
         const bell = settings.bells[nextBell];
         const threshold = bell.remaining * 1000;
         if (threshold < remaining) break;
-        if (threshold < previousRemaining) timerBells.enqueue(bell.rings, settings.volume, settings.interval);
+        if (threshold < previousRemaining) timerBells.enqueue(bell.rings, settings);
       }
       previousRemaining = remaining;
       if (!settings.overtime && remaining <= 0) {
@@ -615,7 +662,7 @@
     function start() {
       if (startButton.disabled || dialog.open) return;
       const attempt = ++timerAudioAttempt;
-      enableAudio().then((ready) => {
+      enableAudio(settings.tone).then((ready) => {
         if (attempt !== timerAudioAttempt) return;
         audioMessage = ready ? '' : 'Bell audio is unavailable. Check your browser audio settings.';
         renderScreenWarning();
@@ -729,6 +776,7 @@
       durationSeconds.value = values.duration % 60;
       volumeInput.value = values.volume;
       intervalInput.value = values.interval === 1 ? '1.0' : values.interval;
+      toneInput.value = values.tone;
       overtimeInput.checked = values.overtime;
       bellRows.replaceChildren();
       values.bells.forEach(addBell);
@@ -765,7 +813,7 @@
 
       const interval = intervalInput.valueAsNumber;
       if (!Number.isFinite(interval) || interval <= 0) error(intervalInput, 'Ring Interval must be greater than 0 seconds.');
-      const values = { interval, volume: volumeInput.valueAsNumber, overtime: overtimeInput.checked, bells: [] };
+      const values = { interval, tone: toneInput.value, volume: volumeInput.valueAsNumber, overtime: overtimeInput.checked, bells: [] };
 
       if (!soundOnly) {
         function readTime(minutes, seconds, label) {
@@ -836,14 +884,14 @@
       const attempt = testAudioAttempt;
       const notice = byId('audio-notice');
       showMessage(notice, '');
-      const ready = await enableAudio();
+      const ready = await enableAudio(sound.tone);
       if (attempt !== testAudioAttempt || !dialog.open) return;
       if (!ready) {
         showMessage(notice, 'Bell audio is unavailable. Check your browser audio settings.');
         return;
       }
       if (sound.volume === 0) showMessage(notice, 'Bell volume is 0%.');
-      testBells.enqueue(2, sound.volume, sound.interval);
+      testBells.enqueue(2, sound);
     }
 
     const root = document.documentElement;
