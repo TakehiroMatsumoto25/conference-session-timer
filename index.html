@@ -108,14 +108,27 @@
     }
     .clock-label { margin: .12em 0 0; color: #ccc; font-size: var(--label-size); font-weight: 400; }
     .clock-face { display: grid; place-items: center; min-width: 0; }
+    .timer-numerals {
+      font-family: Menlo, Consolas, "DejaVu Sans Mono", monospace;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums slashed-zero;
+    }
+    .timer-numerals[data-timer-font="sans-serif"] {
+      font-family: Arial, Helvetica, sans-serif;
+      font-variant-numeric: tabular-nums;
+    }
+    .timer-numerals[data-timer-font="courier"] {
+      font-family: "Courier New", Courier, "Liberation Mono", monospace;
+      font-variant-numeric: tabular-nums;
+    }
     .readout {
       --digit-width: 3.61;
       position: relative;
       display: inline-block;
       transform: translateY(-1.65dvh);
       color: #fdfdfd;
-      font: 700 min(48.5dvh, calc(96vw / var(--digit-width)))/.94 Menlo, Consolas, "DejaVu Sans Mono", monospace;
-      font-variant-numeric: tabular-nums slashed-zero;
+      font-size: min(48.5dvh, calc(96vw / var(--digit-width)));
+      line-height: .94;
       letter-spacing: 0;
       white-space: nowrap;
     }
@@ -184,7 +197,9 @@
     fieldset { margin: 0; padding: .65rem 0 0; border: 0; min-width: 0; }
     legend { padding: 0; font-weight: 600; }
     form { display: grid; gap: 1.2rem; }
-    .duration, .sound-options { display: flex; flex-wrap: wrap; gap: .8rem 1.25rem; }
+    .duration, .sound-options, .font-options { display: flex; flex-wrap: wrap; gap: .8rem 1.25rem; }
+    .font-options { align-items: flex-end; }
+    .font-preview { font-size: 1.65rem; line-height: 1.55; }
     .field { display: grid; gap: .4rem; color: #ddd; font-size: .925rem; }
     input[type="number"], select {
       width: 100%;
@@ -254,7 +269,7 @@
     <main class="clock" aria-labelledby="clock-label">
       <h2 id="clock-label" class="clock-label">TIME REMAINING</h2>
       <div class="clock-face">
-        <div class="readout" id="readout" role="timer" aria-labelledby="clock-label">
+        <div class="readout timer-numerals" id="readout" role="timer" aria-labelledby="clock-label">
           <span class="sign" id="sign" hidden>+</span><span id="digits">15:00</span>
         </div>
       </div>
@@ -310,6 +325,16 @@
       </div>
       <div><button id="test-bell" type="button">Test Bell</button></div>
       <p class="warning audio-notice" id="audio-notice" role="status" hidden></p>
+      <div class="font-options">
+        <label class="field">Timer Font
+          <select id="timer-font">
+            <option value="monospace">Monospace (slashed zero)</option>
+            <option value="sans-serif">Sans Serif</option>
+            <option value="courier">Courier</option>
+          </select>
+        </label>
+        <span class="font-preview timer-numerals" id="font-preview" aria-hidden="true">15:00</span>
+      </div>
       <label class="check"><input id="overtime" type="checkbox"> Count overtime</label>
       <ul class="errors" id="errors" role="alert" hidden></ul>
 
@@ -363,6 +388,7 @@
     const volumeInput = byId('volume');
     const intervalInput = byId('interval');
     const toneInput = byId('bell-tone');
+    const fontInput = byId('timer-font');
     const overtimeInput = byId('overtime');
     const storageKey = 'conference-timer-settings-v1';
     const maxDuration = Math.floor(Number.MAX_SAFE_INTEGER / 1000);
@@ -385,6 +411,8 @@
       }
     };
     const defaultTone = 'desk';
+    const defaultFont = 'monospace';
+    const timerFonts = new Set(Array.from(fontInput.options, (option) => option.value));
 
     const defaultSettings = () => ({
       duration: 900,
@@ -392,6 +420,7 @@
       volume: 80,
       interval: 0.5,
       tone: defaultTone,
+      timerFont: defaultFont,
       overtime: true
     });
 
@@ -410,6 +439,7 @@
             new Set(saved.bells.map((bell) => bell.remaining)).size === saved.bells.length) {
           saved.bells.sort((a, b) => b.remaining - a.remaining);
           if (!Object.hasOwn(bellTones, saved.tone)) saved.tone = defaultTone;
+          if (!timerFonts.has(saved.timerFont)) saved.timerFont = defaultFont;
           return saved;
         }
       } catch {
@@ -703,6 +733,7 @@
       timerBells.clear();
       audioMessage = '';
       renderScreenWarning();
+      readout.dataset.timerFont = settings.timerFont;
       render(settings.duration * 1000);
       renderButtons();
       syncWakeLock();
@@ -765,6 +796,10 @@
       byId('volume-value').value = `${volumeInput.value}%`;
     }
 
+    function updateFontPreview() {
+      byId('font-preview').dataset.timerFont = fontInput.value;
+    }
+
     function clearErrors() {
       errors.hidden = true;
       errors.replaceChildren();
@@ -780,11 +815,13 @@
       volumeInput.value = values.volume;
       intervalInput.value = values.interval === 1 ? '1.0' : values.interval;
       toneInput.value = values.tone;
+      fontInput.value = values.timerFont;
       overtimeInput.checked = values.overtime;
       bellRows.replaceChildren();
       values.bells.forEach(addBell);
       refreshBellRows();
       updateVolume();
+      updateFontPreview();
       clearErrors();
     }
 
@@ -819,6 +856,7 @@
       const values = { interval, tone: toneInput.value, volume: volumeInput.valueAsNumber, overtime: overtimeInput.checked, bells: [] };
 
       if (!soundOnly) {
+        values.timerFont = fontInput.value;
         function readTime(minutes, seconds, label) {
           const min = minutes.valueAsNumber;
           const sec = seconds.valueAsNumber;
@@ -955,6 +993,7 @@
     });
     dialog.addEventListener('cancel', stopTestBell);
     volumeInput.addEventListener('input', updateVolume);
+    fontInput.addEventListener('change', updateFontPreview);
     form.addEventListener('submit', saveSettings);
 
     document.addEventListener('keydown', (event) => {
