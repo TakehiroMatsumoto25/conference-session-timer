@@ -223,13 +223,9 @@
     .audio-notice { margin: -.65rem 0 0; }
     .usage-notes { color: #bdbdbd; font-size: .875rem; line-height: 1.5; }
     summary { cursor: pointer; width: fit-content; }
-    .usage-notes h3 { margin: .85rem 0 .2rem; color: #eee; font-size: .95rem; }
-    .usage-notes p, .usage-notes ol, .usage-notes ul { margin: .25rem 0 .65rem; }
-    .usage-notes ol, .usage-notes ul { padding-inline-start: 1.4rem; }
-    .usage-notes li + li { margin-top: .25rem; }
+    .usage-notes p { margin: .4rem 0; }
     .usage-notes kbd { color: #eee; font-size: .92em; font-weight: 600; white-space: nowrap; }
-    .usage-translation { margin-top: .5rem; }
-    .usage-translation[open] + .usage-english { display: none; }
+    .usage-translation { margin-top: .8rem; }
 
     @media (max-height: 460px) {
       .screen { grid-template-rows: 36px minmax(0, 1fr) auto minmax(44px, 18dvh) minmax(22px, 7dvh); }
@@ -324,41 +320,12 @@
       </div>
 
       <details class="usage-notes">
-        <summary>Usage and browser notes</summary>
-        <details class="usage-translation" lang="ja">
-          <summary>日本語の使い方と注意点</summary>
-          <h3>発表の前に</h3>
-          <ol>
-            <li>タイマーが止まっている間に、歯車の <strong>Settings</strong> で発表時間とベルを設定します。ベルの時刻は残り時間です。初期設定では15分の発表で、残り5分に1回、終了時に2回鳴ります。</li>
-            <li><strong>Test Bell</strong> を押し、本番と同じスピーカーで音を確認します。選んだ音色・音量・間隔で2回鳴ります。間隔の初期値は0.5秒です。</li>
-            <li><strong>Save</strong> で設定を反映します。すべての設定を初期値に戻すには、<strong>Restore Defaults</strong> を押してから <strong>Save</strong> を押します。</li>
-          </ol>
-          <h3>発表中の操作</h3>
-          <p><strong>START</strong> で開始・再開、<strong>PAUSE</strong> で一時停止、<strong>RESET</strong> で設定した発表時間に戻ります。<strong>Count overtime</strong> がオンなら、終了後は赤字で超過時間を表示します。</p>
+        <summary>How to use</summary>
+        <p>Set the duration and bell times in <strong>Settings</strong>. Bell times use time remaining. Check the sound with <strong>Test Bell</strong>, then select <strong>Save</strong>.</p>
+        <p><kbd>Space</kbd> start/pause · <kbd>R</kbd> reset · <kbd>F</kbd> toggle fullscreen · <kbd>S</kbd> open settings · <kbd>Esc</kbd> close settings</p>
+        <div class="usage-translation" lang="ja">
+          <p><strong>Settings</strong> で発表時間とベルを設定します。ベルの時刻は残り時間です。<strong>Test Bell</strong> で試聴し、<strong>Save</strong> で保存します。</p>
           <p><kbd>Space</kbd> 開始・一時停止 ／ <kbd>R</kbd> リセット ／ <kbd>F</kbd> 全画面切り替え ／ <kbd>S</kbd> 設定を開く ／ <kbd>Esc</kbd> 設定を閉じる</p>
-          <h3>ブラウザと音声</h3>
-          <ul>
-            <li>本番中はタイマーのタブを表示し、PCをスリープさせないでください。ブラウザの音声制限、スリープ、非表示タブの処理制限で、ベルが遅れたり鳴らなかったりすることがあります。</li>
-            <li>設定は使っているブラウザに保存されます。オフラインでは保存済みの <code>index.html</code> をPCのブラウザで直接開きます。ローカルファイルの設定を保存できるかはブラウザによります。</li>
-          </ul>
-          <p>GitHub Pages で公開する場合は、リポジトリのルートに <code>index.html</code> をプッシュし、<strong>Settings → Pages</strong> で公開ブランチと <code>/(root)</code> を選びます。</p>
-        </details>
-        <div class="usage-english">
-          <h3>Before the session</h3>
-          <ol>
-            <li>Open <strong>Settings</strong> with the gear button while the timer is stopped. Set the presentation duration and schedule bells by time remaining. By default, a 15-minute talk gets one ring with 5 minutes left and two at the end.</li>
-            <li>Use <strong>Test Bell</strong> to check the speakers you will use. It plays twice with the selected tone, volume, and interval. The default interval is 0.5 seconds.</li>
-            <li>Select <strong>Save</strong> to apply your settings. To reset all settings, select <strong>Restore Defaults</strong>, then <strong>Save</strong>.</li>
-          </ol>
-          <h3>During the session</h3>
-          <p><strong>START</strong> starts or resumes the timer, <strong>PAUSE</strong> holds it, and <strong>RESET</strong> returns it to the set presentation duration. With <strong>Count overtime</strong> enabled, extra time appears in red.</p>
-          <p><kbd>Space</kbd> start or pause · <kbd>R</kbd> reset · <kbd>F</kbd> toggle fullscreen · <kbd>S</kbd> open settings · <kbd>Esc</kbd> close settings</p>
-          <h3>Browser and sound</h3>
-          <ul>
-            <li>Keep the timer tab visible and the computer awake. Browser audio restrictions, sleep, and background throttling can delay or prevent bells.</li>
-            <li>Settings are saved in your browser. For offline use, open a saved copy of <code>index.html</code> in a desktop browser. Storage for local files depends on the browser.</li>
-          </ul>
-          <p>To publish on GitHub Pages, push <code>index.html</code> to the repository root. In <strong>Settings → Pages</strong>, choose the publishing branch and <code>/(root)</code>.</p>
         </div>
       </details>
     </form>
