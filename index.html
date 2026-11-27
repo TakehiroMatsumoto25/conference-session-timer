@@ -187,24 +187,52 @@
     }
     .bell-item { white-space: nowrap; }
     dialog {
-      width: min(42rem, calc(100% - 1.5rem));
+      --settings-padding: clamp(.9rem, 4vw, 1.5rem);
+      width: min(44rem, calc(100% - 1.5rem));
       max-height: calc(100dvh - 1.5rem);
-      padding: clamp(16px, 4vw, 30px);
+      padding: 0;
       border: 1px solid #626262;
       border-radius: 14px;
       background: #171717;
       color: #fff;
-      overflow-y: auto;
+      overflow: hidden;
     }
+    dialog[open], #settings-form { display: flex; flex-direction: column; }
     dialog::backdrop { background: rgb(0 0 0 / .72); }
-    h2 { margin: 0 0 1.1rem; font-size: 1.45rem; }
-    fieldset { margin: 0; padding: .65rem 0 0; border: 0; min-width: 0; }
-    legend { padding: 0; font-weight: 600; }
-    form { display: grid; gap: 1.2rem; }
-    .duration, .sound-options, .font-options { display: flex; flex-wrap: wrap; gap: .8rem 1.25rem; }
-    .font-options { align-items: flex-end; }
+    #settings-title {
+      flex: none;
+      margin: 0;
+      padding: .9rem var(--settings-padding);
+      border-bottom: 1px solid #393939;
+      font-size: 1.45rem;
+    }
+    #settings-form, .settings-body { min-height: 0; }
+    .settings-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      align-content: start;
+      gap: 1rem;
+      padding: 1rem var(--settings-padding);
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+    .settings-section {
+      min-width: 0;
+      margin: 0;
+      padding: .65rem .9rem .9rem;
+      border: 1px solid #454545;
+      border-radius: 8px;
+    }
+    .settings-section legend { padding: 0 .35rem; font-weight: 600; }
+    .duration, .sound-options { display: grid; gap: .65rem .9rem; }
+    .duration { grid-template-columns: repeat(2, minmax(0, 7.4rem)); }
+    .sound-options { grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); }
+    .sound-test, .display-options, .font-options { display: flex; flex-wrap: wrap; gap: .65rem 1rem; }
+    .sound-test { margin-top: .75rem; align-items: center; }
+    .display-options, .font-options { align-items: flex-end; }
+    .display-options { gap: .85rem 1.5rem; }
     .font-preview { font-size: 1.65rem; line-height: 1.55; }
-    .field { display: grid; gap: .4rem; color: #ddd; font-size: .925rem; }
+    .field { display: grid; align-content: start; gap: .35rem; min-width: 0; color: #ddd; font-size: .925rem; }
     input[type="number"], select {
       width: 100%;
       min-width: 0;
@@ -214,16 +242,18 @@
       background: #0d0d0d;
       color: #fff;
     }
-    .duration input, #interval { width: 7.4rem; }
     #interval::-webkit-inner-spin-button { opacity: 1; }
     input[type="range"], input[type="checkbox"] { accent-color: #ddd; }
-    input[type="range"] { margin-block: .55rem; }
-    .bell-hint { margin: 0 0 .25rem; color: #bdbdbd; font-size: .875rem; }
-    .bell-table { overflow-x: auto; }
+    input[type="range"] { width: 100%; min-width: 0; margin: .65rem 0; }
+    .volume-label { display: flex; justify-content: space-between; gap: .5rem; }
+    .field-hint { color: #bdbdbd; font-size: .875rem; }
+    .bell-hint { margin: 0 0 .25rem; }
+    .bell-table { max-width: 100%; overflow-x: auto; }
     table { width: 100%; min-width: 24rem; margin-bottom: .45rem; border-spacing: .4rem .45rem; table-layout: fixed; }
     th { text-align: start; font-size: .875rem; color: #ccc; font-weight: 400; }
     th:nth-last-child(2) { width: 3.8rem; }
     th:last-child { width: 4.45rem; }
+    th small { display: block; font-size: .8rem; color: #bdbdbd; }
     td { padding: 0; }
     td button { width: 100%; }
     .bell-time { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: .25rem; }
@@ -237,15 +267,23 @@
       padding: .5rem .7rem;
     }
     dialog button:hover { background: #373737; }
+    .settings-footer {
+      flex: none;
+      padding: .75rem var(--settings-padding);
+      border-top: 1px solid #393939;
+      background: #171717;
+    }
     .form-actions { display: flex; flex-wrap: wrap; gap: .65rem; }
     .form-actions .cancel { margin-inline-start: auto; }
     .form-actions .save { background: #eee; border-color: #eee; color: #111; }
     .form-actions .save:hover { background: #ccc; }
     .check { display: flex; align-items: center; gap: .5rem; width: fit-content; }
-    .check input { inline-size: 1rem; block-size: 1rem; }
-    .errors { margin: 0; padding-inline-start: 1.35em; color: #ff9e9e; font-size: .9rem; }
+    .check input { inline-size: 1rem; block-size: 1rem; margin: 0; }
+    #overtime-help { margin: .25rem 0 0 1.5rem; }
+    .errors { max-height: min(20dvh, 9rem); overflow-y: auto; margin: 0 0 .6rem; padding-inline-start: 1.35em; color: #ff9e9e; font-size: .9rem; }
     [aria-invalid="true"] { outline: 1px solid #ff9e9e; }
-    .audio-notice { margin: -.65rem 0 0; }
+    .audio-notice { margin: 0; }
+    .settings-help { display: grid; gap: .6rem; }
     .usage-notes { color: #bdbdbd; font-size: .875rem; line-height: 1.5; }
     summary { cursor: pointer; width: fit-content; }
     .usage-notes p { margin: .4rem 0; }
@@ -314,87 +352,114 @@
   <dialog id="settings-dialog" aria-labelledby="settings-title">
     <h2 id="settings-title">Settings</h2>
     <form id="settings-form" novalidate>
-      <fieldset>
-        <legend>Presentation Duration</legend>
-        <div class="duration">
-          <label class="field">Minutes <input id="duration-minutes" type="number" min="0" step="1" required autofocus></label>
-          <label class="field">Seconds <input id="duration-seconds" type="number" min="0" max="59" step="1" required></label>
-        </div>
-      </fieldset>
-
-      <fieldset>
-        <legend>Bells</legend>
-        <p class="bell-hint" id="bell-time-help">Edit either time. Changing the duration keeps the last time entered for each bell.</p>
-        <div class="bell-table">
-          <table aria-describedby="bell-time-help">
-            <thead><tr><th scope="col">Remaining (min:sec)</th><th scope="col">From Start (min:sec)</th><th scope="col">Rings</th><th scope="col">Action</th></tr></thead>
-            <tbody id="bell-rows"></tbody>
-          </table>
-        </div>
-        <button id="add-bell" type="button">Add Bell</button>
-      </fieldset>
-
-      <div class="sound-options">
-        <div class="field">
-          <label for="volume">Bell Volume <output id="volume-value" for="volume">80%</output></label>
-          <input id="volume" type="range" min="0" max="100" step="1" value="80">
-        </div>
-        <label class="field">Ring Interval (seconds) <input id="interval" type="number" min="0.5" step="0.5" required></label>
-        <label class="field">Bell Tone
-          <select id="bell-tone">
-            <option value="desk">Desk Bell</option>
-            <option value="bright">Bright Bell</option>
-            <option value="chime">Soft Chime</option>
-            <option value="clear-chime">Clear Chime</option>
-            <option value="low-gong">Low Gong</option>
-          </select>
-        </label>
-      </div>
-      <div><button id="test-bell" type="button">Test Bell</button></div>
-      <p class="warning audio-notice" id="audio-notice" role="status" hidden></p>
-      <div class="font-options">
-        <label class="field">Timer Font
-          <select id="timer-font">
-            <option value="monospace">Monospace (slashed zero)</option>
-            <option value="arial">Arial</option>
-            <option value="system-sans">System Sans Serif</option>
-            <option value="courier">Courier</option>
-            <option value="verdana">Verdana</option>
-          </select>
-        </label>
-        <span class="font-preview timer-numerals" id="font-preview" aria-hidden="true">15:00</span>
-      </div>
-      <label class="check"><input id="overtime" type="checkbox"> Count overtime</label>
-      <ul class="errors" id="errors" role="alert" hidden></ul>
-
-      <div class="form-actions">
-        <button id="restore" type="button">Restore Defaults</button>
-        <button class="cancel" id="cancel" type="button">Cancel</button>
-        <button class="save" type="submit">Save</button>
-      </div>
-
-      <details class="usage-notes">
-        <summary>How to use</summary>
-        <p>Set the duration and bell times in <strong>Settings</strong>. Enter either the time remaining or the time from the start. Check the sound with <strong>Test Bell</strong>, then select <strong>Save</strong>.</p>
-        <p><kbd>Space</kbd> start/pause · <kbd>R</kbd> reset · <kbd>F</kbd> toggle fullscreen · <kbd>S</kbd> open settings · <kbd>Esc</kbd> close settings</p>
-        <div class="usage-translation" lang="ja">
-          <p><strong>Settings</strong> で発表時間とベルを設定します。ベルは残り時間か開始からの時間で入力できます。<strong>Test Bell</strong> で試聴し、<strong>Save</strong> で保存します。</p>
-          <p><kbd>Space</kbd> 開始・一時停止 ／ <kbd>R</kbd> リセット ／ <kbd>F</kbd> 全画面切り替え ／ <kbd>S</kbd> 設定を開く ／ <kbd>Esc</kbd> 設定を閉じる</p>
-        </div>
-      </details>
-      <details class="accuracy-note">
-        <summary lang="ja">時間の正確性に関して<span class="accuracy-marker" aria-hidden="true">▼</span></summary>
-        <div class="accuracy-copy">
-          <p>The timer calculates the time remaining using <code>performance.now()</code>, a browser clock that runs independently of your computer’s time settings. Each screen update uses the latest elapsed time.</p>
-          <p>Paused time is excluded. The display rounds time remaining up and overtime down to whole seconds.</p>
-          <p>The timer detects when the remaining time reaches or passes a bell’s set time. Switching tabs or putting the computer to sleep can delay screen updates and bells. Keep this tab visible and the computer awake during a session.</p>
-          <div lang="ja">
-            <p>残り時間は、PCの時刻変更から独立したブラウザの時計 <code>performance.now()</code> で測った経過時間から計算します。画面の更新が遅れても、その遅れは計測に積み重なりません。</p>
-            <p>一時停止中の時間は計測から除きます。表示は残り時間を秒単位で切り上げ、超過時間を切り捨てます。</p>
-            <p>ベルは設定した残り時間を通過したことを検出して鳴らします。別のタブに切り替えたり、PCがスリープしたりすると、表示やベルが遅れることがあります。本番中はこのタブを表示し、PCをスリープさせないでください。</p>
+      <div class="settings-body">
+        <fieldset class="settings-section">
+          <legend>Presentation Duration</legend>
+          <div class="duration">
+            <label class="field">Minutes <input id="duration-minutes" type="number" min="0" step="1" required autofocus></label>
+            <label class="field">Seconds <input id="duration-seconds" type="number" min="0" max="59" step="1" required></label>
           </div>
+        </fieldset>
+
+        <fieldset class="settings-section">
+          <legend>Bell Schedule</legend>
+          <p class="field-hint bell-hint" id="bell-time-help">Edit either time. Changing the duration keeps the last time entered for each bell.</p>
+          <div class="bell-table">
+            <table aria-describedby="bell-time-help">
+              <thead>
+                <tr>
+                  <th scope="col">Time Remaining <small>min:sec</small></th>
+                  <th scope="col">From Start <small>min:sec</small></th>
+                  <th scope="col">Rings</th>
+                  <th scope="col">Action</th>
+                </tr>
+              </thead>
+              <tbody id="bell-rows"></tbody>
+            </table>
+          </div>
+          <button id="add-bell" type="button">Add Bell</button>
+        </fieldset>
+
+        <fieldset class="settings-section">
+          <legend>Bell Sound</legend>
+          <div class="sound-options">
+            <label class="field">Bell Tone
+              <select id="bell-tone">
+                <option value="desk">Desk Bell</option>
+                <option value="bright">Bright Bell</option>
+                <option value="chime">Soft Chime</option>
+                <option value="clear-chime">Clear Chime</option>
+                <option value="low-gong">Low Gong</option>
+              </select>
+            </label>
+            <label class="field">Ring Interval (seconds) <input id="interval" type="number" min="0.5" step="0.5" required></label>
+            <div class="field">
+              <label class="volume-label" for="volume">Bell Volume <output id="volume-value" for="volume">80%</output></label>
+              <input id="volume" type="range" min="0" max="100" step="1" value="80">
+            </div>
+          </div>
+          <div class="sound-test">
+            <button id="test-bell" type="button">Test Bell</button>
+            <p class="warning audio-notice" id="audio-notice" role="status" hidden></p>
+          </div>
+        </fieldset>
+
+        <fieldset class="settings-section">
+          <legend>Display</legend>
+          <div class="display-options">
+            <div class="font-options">
+              <label class="field">Timer Font
+                <select id="timer-font">
+                  <option value="monospace">Monospace (slashed zero)</option>
+                  <option value="arial">Arial</option>
+                  <option value="system-sans">System Sans Serif</option>
+                  <option value="courier">Courier</option>
+                  <option value="verdana">Verdana</option>
+                </select>
+              </label>
+              <span class="font-preview timer-numerals" id="font-preview" aria-hidden="true">15:00</span>
+            </div>
+            <div>
+              <label class="check"><input id="overtime" type="checkbox" aria-describedby="overtime-help"> Count overtime</label>
+              <p class="field-hint" id="overtime-help">Keep counting after 00:00.</p>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="settings-help">
+          <details class="usage-notes">
+            <summary>How to use</summary>
+            <p>Set the duration and bell times in <strong>Settings</strong>. Enter either the time remaining or the time from the start. Check the sound with <strong>Test Bell</strong>, then select <strong>Save</strong>.</p>
+            <p><kbd>Space</kbd> start/pause · <kbd>R</kbd> reset · <kbd>F</kbd> toggle fullscreen · <kbd>S</kbd> open settings · <kbd>Esc</kbd> close settings</p>
+            <div class="usage-translation" lang="ja">
+              <p><strong>Settings</strong> で発表時間とベルを設定します。ベルは残り時間か開始からの時間で入力できます。<strong>Test Bell</strong> で試聴し、<strong>Save</strong> で保存します。</p>
+              <p><kbd>Space</kbd> 開始・一時停止 ／ <kbd>R</kbd> リセット ／ <kbd>F</kbd> 全画面切り替え ／ <kbd>S</kbd> 設定を開く ／ <kbd>Esc</kbd> 設定を閉じる</p>
+            </div>
+          </details>
+          <details class="accuracy-note">
+            <summary lang="ja">時間の正確性に関して<span class="accuracy-marker" aria-hidden="true">▼</span></summary>
+            <div class="accuracy-copy">
+              <p>The timer calculates the time remaining using <code>performance.now()</code>, a browser clock that runs independently of your computer’s time settings. Each screen update uses the latest elapsed time.</p>
+              <p>Paused time is excluded. The display rounds time remaining up and overtime down to whole seconds.</p>
+              <p>The timer detects when the remaining time reaches or passes a bell’s set time. Switching tabs or putting the computer to sleep can delay screen updates and bells. Keep this tab visible and the computer awake during a session.</p>
+              <div lang="ja">
+                <p>残り時間は、PCの時刻変更から独立したブラウザの時計 <code>performance.now()</code> で測った経過時間から計算します。画面の更新が遅れても、その遅れは計測に積み重なりません。</p>
+                <p>一時停止中の時間は計測から除きます。表示は残り時間を秒単位で切り上げ、超過時間を切り捨てます。</p>
+                <p>ベルは設定した残り時間を通過したことを検出して鳴らします。別のタブに切り替えたり、PCがスリープしたりすると、表示やベルが遅れることがあります。本番中はこのタブを表示し、PCをスリープさせないでください。</p>
+              </div>
+            </div>
+          </details>
         </div>
-      </details>
+      </div>
+
+      <div class="settings-footer">
+        <ul class="errors" id="errors" role="alert" hidden></ul>
+        <div class="form-actions">
+          <button id="restore" type="button">Restore Defaults</button>
+          <button class="cancel" id="cancel" type="button">Cancel</button>
+          <button class="save" type="submit">Save</button>
+        </div>
+      </div>
     </form>
   </dialog>
 
