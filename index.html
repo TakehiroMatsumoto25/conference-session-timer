@@ -464,6 +464,8 @@
     const storageKey = 'conference-timer-settings-v1';
     const maxDuration = Math.floor(Number.MAX_SAFE_INTEGER / 1000);
     const maxTimeout = 2147483647;
+    const audioUnavailable = 'Bell audio is unavailable. Check your browser audio settings.';
+    const byRemainingTime = (a, b) => b.remaining - a.remaining;
     const bellTones = {
       desk: {
         duration: .93,
@@ -509,16 +511,20 @@
       return Number.isSafeInteger(value) && value >= min && value <= max;
     }
 
+    function validRingInterval(value) {
+      return Number.isFinite(value) && value > 0;
+    }
+
     // 保存データを検証してから使用し、読み込めない場合は初期値で起動する。
     function loadSettings() {
       try {
         const saved = JSON.parse(localStorage.getItem(storageKey));
         if (saved && integerInRange(saved.duration, 1, maxDuration) &&
-            integerInRange(saved.volume, 0, 100) && Number.isFinite(saved.interval) && saved.interval > 0 &&
+            integerInRange(saved.volume, 0, 100) && validRingInterval(saved.interval) &&
             typeof saved.overtime === 'boolean' && Array.isArray(saved.bells) &&
             saved.bells.every((bell) => bell && integerInRange(bell.remaining, 0, saved.duration) && integerInRange(bell.rings, 1)) &&
             new Set(saved.bells.map((bell) => bell.remaining)).size === saved.bells.length) {
-          saved.bells.sort((a, b) => b.remaining - a.remaining);
+          saved.bells.sort(byRemainingTime);
           if (!Object.hasOwn(bellTones, saved.tone)) saved.tone = defaultTone;
           if (saved.timerFont === 'sans-serif') saved.timerFont = 'arial';
           if (!timerFonts.has(saved.timerFont)) saved.timerFont = defaultFont;
@@ -534,7 +540,6 @@
     let state = 'idle';
     let elapsedBeforeStart = 0;
     let startedAt = 0;
-    let previousRemaining = Infinity;
     let nextBell = 0;
     let frame = 0;
     let deadline = 0;
@@ -553,13 +558,14 @@
       return `${minutes}:${seconds}`;
     }
 
-    function showMessage(element, message) {
+    function showMessage(id, message) {
+      const element = byId(id);
       element.textContent = message;
       element.hidden = !message;
     }
 
     function renderScreenWarning() {
-      showMessage(byId('screen-warning'), [audioMessage, screenMessage].filter(Boolean).join(' '));
+      showMessage('screen-warning', [audioMessage, screenMessage].filter(Boolean).join(' '));
     }
 
     // 画面の更新頻度とは独立に、単調増加する時計から経過時間を求める。
@@ -582,10 +588,11 @@
     }
 
     function renderButtons() {
-      startButton.disabled = state === 'running' || state === 'finished';
-      pauseButton.disabled = state !== 'running';
+      const running = state === 'running';
+      startButton.disabled = running || state === 'finished';
+      pauseButton.disabled = !running;
       resetButton.disabled = state === 'idle';
-      settingsButton.disabled = state === 'running';
+      settingsButton.disabled = running;
     }
 
     function renderBells() {
@@ -646,6 +653,10 @@
       }
     }
 
+    function timeoutDelay(milliseconds) {
+      return Math.min(maxTimeout, Math.max(1, Math.ceil(milliseconds)));
+    }
+
     // ベルを順番に再生し、各グループの最後の音が終わってから次へ進む。
     class BellQueue {
       groups = [];
@@ -661,8 +672,7 @@
       }
 
       schedule(now) {
-        const delay = Math.min(maxTimeout, Math.max(1, Math.ceil((this.nextAt - now) * 1000)));
-        this.timeout = setTimeout(() => this.playNext(), delay);
+        this.timeout = setTimeout(() => this.playNext(), timeoutDelay((this.nextAt - now) * 1000));
       }
 
       playNext() {
@@ -672,10 +682,7 @@
         const bellBuffer = bellBuffers.get(group.tone);
         if (!bellBuffer) return;
         const now = audioContext.currentTime;
-        if (now < this.nextAt) {
-          this.schedule(now);
-          return;
-        }
+        if (now < this.nextAt) return this.schedule(now);
 
         const source = audioContext.createBufferSource();
         const gain = audioContext.createGain();
@@ -728,19 +735,18 @@
       const remaining = settings.duration * 1000 - elapsed(now);
       for (; nextBell < settings.bells.length; nextBell++) {
         const bell = settings.bells[nextBell];
-        const threshold = bell.remaining * 1000;
-        if (threshold < remaining) break;
-        if (threshold < previousRemaining) timerBells.enqueue(bell.rings, settings);
+        if (bell.remaining * 1000 < remaining) break;
+        timerBells.enqueue(bell.rings, settings);
       }
-      previousRemaining = remaining;
-      if (!settings.overtime && remaining <= 0) {
+      const finished = !settings.overtime && remaining <= 0;
+      if (finished) {
         state = 'finished';
         elapsedBeforeStart = settings.duration * 1000;
         stopUpdates();
         renderButtons();
         syncWakeLock();
       }
-      render(remaining < 0 && !settings.overtime ? 0 : remaining);
+      render(finished ? 0 : remaining);
     }
 
     function tick() {
@@ -756,12 +762,11 @@
       const upcoming = settings.bells[nextBell];
       if (!upcoming && settings.overtime) return;
       const target = (settings.duration - (upcoming?.remaining ?? 0)) * 1000;
-      const delay = Math.max(1, Math.min(maxTimeout, Math.ceil(target - elapsed())));
       deadline = setTimeout(() => {
         if (state !== 'running') return;
         renderRunningTime();
         setBellDeadline();
-      }, delay);
+      }, timeoutDelay(target - elapsed()));
     }
 
     function stopUpdates() {
@@ -774,7 +779,7 @@
       const attempt = ++timerAudioAttempt;
       enableAudio(settings.tone).then((ready) => {
         if (attempt !== timerAudioAttempt) return;
-        audioMessage = ready ? '' : 'Bell audio is unavailable. Check your browser audio settings.';
+        audioMessage = ready ? '' : audioUnavailable;
         renderScreenWarning();
         if (ready) timerBells.playNext();
       });
@@ -803,7 +808,6 @@
     function reset() {
       state = 'idle';
       elapsedBeforeStart = 0;
-      previousRemaining = Infinity;
       nextBell = 0;
       timerAudioAttempt++;
       stopUpdates();
@@ -860,6 +864,10 @@
       return total;
     }
 
+    function readDuration(reportError) {
+      return readTime(durationMinutes, durationSeconds, 'Presentation', reportError);
+    }
+
     function writeTime(minutes, seconds, total) {
       const valid = Number.isFinite(total) && total >= 0;
       minutes.value = valid ? Math.floor(total / 60) : '';
@@ -871,7 +879,7 @@
     }
 
     // 入力した側を基準にして、発表時間からもう一方の時刻を計算する。
-    function syncBellTime(row, duration) {
+    function syncBellTime(row, duration = readDuration()) {
       const basis = row.dataset.timeBasis;
       const other = basis === 'elapsed' ? 'remaining' : 'elapsed';
       const entered = readTime(...bellTimeFields(row, basis));
@@ -879,7 +887,7 @@
     }
 
     function syncBellTimes() {
-      const duration = readTime(durationMinutes, durationSeconds);
+      const duration = readDuration();
       for (const row of bellRows.rows) syncBellTime(row, duration);
       clearErrors();
     }
@@ -896,7 +904,7 @@
       const row = byId('bell-row-template').content.firstElementChild.cloneNode(true);
       row.dataset.timeBasis = basis === 'elapsed' ? 'elapsed' : 'remaining';
       const remainingFields = bellTimeFields(row, 'remaining');
-      const duration = readTime(durationMinutes, durationSeconds);
+      const duration = readDuration();
       writeTime(...remainingFields, remaining);
       writeTime(...bellTimeFields(row, 'elapsed'), duration > 0 ? duration - remaining : NaN);
       row.querySelector('.bell-rings').value = rings;
@@ -947,13 +955,42 @@
     function openSettings() {
       if (state === 'running' || dialog.open) return;
       populateForm(settings);
-      showMessage(byId('audio-notice'), '');
+      showMessage('audio-notice', '');
       dialog.showModal();
     }
 
     function stopTestBell() {
       testAudioAttempt++;
       testBells.clear();
+    }
+
+    function closeSettings() {
+      stopTestBell();
+      dialog.close();
+    }
+
+    function readBells(duration, reportError) {
+      const times = new Map();
+      const bells = Array.from(bellRows.rows, (row, index) => {
+        const basis = row.dataset.timeBasis;
+        const [minutes, seconds] = bellTimeFields(row, basis);
+        const count = row.querySelector('.bell-rings');
+        const label = `Bell ${index + 1}`;
+        const timeLabel = basis === 'elapsed' ? 'time from start' : 'remaining time';
+        const time = readTime(minutes, seconds, `${label} ${timeLabel}`, reportError);
+        const remaining = basis === 'elapsed' ? duration - time : time;
+        const rings = count.valueAsNumber;
+        if (!integerInRange(rings, 1)) reportError(count, `${label} rings must be a positive whole number within range.`);
+        if (time > duration) {
+          reportError(minutes, `${label} ${timeLabel} must be within the presentation duration.`);
+        } else if (time <= duration) {
+          const duplicate = times.get(remaining);
+          if (duplicate) reportError(minutes, `${label} is set to the same remaining time as Bell ${duplicate}.`);
+          else times.set(remaining, index + 1);
+        }
+        return { remaining, rings, basis };
+      });
+      return bells.sort(byRemainingTime);
     }
 
     // 保存前に項目ごとの範囲と、ベルの残り時刻の重複を検査する。
@@ -971,35 +1008,14 @@
       }
 
       const interval = intervalInput.valueAsNumber;
-      if (!Number.isFinite(interval) || interval <= 0) error(intervalInput, 'Ring Interval must be greater than 0 seconds.');
+      if (!validRingInterval(interval)) error(intervalInput, 'Ring Interval must be greater than 0 seconds.');
       const values = { interval, tone: toneInput.value, volume: volumeInput.valueAsNumber, overtime: overtimeInput.checked, bells: [] };
 
       if (!soundOnly) {
         values.timerFont = fontInput.value;
-        values.duration = readTime(durationMinutes, durationSeconds, 'Presentation', error);
+        values.duration = readDuration(error);
         if (values.duration === 0) error(durationSeconds, 'Presentation Duration must be at least one second.');
-        const times = new Map();
-        Array.from(bellRows.rows).forEach((row, index) => {
-          const basis = row.dataset.timeBasis;
-          const [minutes, seconds] = bellTimeFields(row, basis);
-          const count = row.querySelector('.bell-rings');
-          const label = `Bell ${index + 1}`;
-          const timeLabel = basis === 'elapsed' ? 'time from start' : 'remaining time';
-          const time = readTime(minutes, seconds, `${label} ${timeLabel}`, error);
-          const remaining = basis === 'elapsed' ? values.duration - time : time;
-          const rings = count.valueAsNumber;
-          if (!integerInRange(rings, 1)) error(count, `${label} rings must be a positive whole number within range.`);
-          if (time > values.duration) error(minutes, `${label} ${timeLabel} must be within the presentation duration.`);
-          if (Number.isFinite(remaining) && time <= values.duration) {
-            if (times.has(remaining)) {
-              error(minutes, `${label} is set to the same remaining time as Bell ${times.get(remaining)}.`);
-            } else {
-              times.set(remaining, index + 1);
-            }
-          }
-          values.bells.push({ remaining, rings, basis });
-        });
-        values.bells.sort((a, b) => b.remaining - a.remaining);
+        values.bells = readBells(values.duration, error);
       }
 
       if (firstInvalid) {
@@ -1021,8 +1037,7 @@
       } catch {
         screenMessage = 'Settings applied for this session. This browser could not store them.';
       }
-      stopTestBell();
-      dialog.close();
+      closeSettings();
       renderBells();
       reset();
     }
@@ -1032,15 +1047,14 @@
       if (!sound) return;
       stopTestBell();
       const attempt = testAudioAttempt;
-      const notice = byId('audio-notice');
-      showMessage(notice, '');
+      showMessage('audio-notice', '');
       const ready = await enableAudio(sound.tone);
       if (attempt !== testAudioAttempt || !dialog.open) return;
       if (!ready) {
-        showMessage(notice, 'Bell audio is unavailable. Check your browser audio settings.');
+        showMessage('audio-notice', audioUnavailable);
         return;
       }
-      if (sound.volume === 0) showMessage(notice, 'Bell volume is 0%.');
+      if (sound.volume === 0) showMessage('audio-notice', 'Bell volume is 0%.');
       testBells.enqueue(2, sound);
     }
 
@@ -1051,9 +1065,10 @@
 
     function renderFullscreen() {
       const active = isFullscreen();
+      const label = active ? 'Exit fullscreen' : 'Fullscreen';
       fullscreenButton.setAttribute('aria-pressed', active);
-      fullscreenButton.setAttribute('aria-label', active ? 'Exit fullscreen' : 'Fullscreen');
-      fullscreenButton.title = active ? 'Exit fullscreen (F)' : 'Fullscreen (F)';
+      fullscreenButton.setAttribute('aria-label', label);
+      fullscreenButton.title = `${label} (F)`;
     }
 
     async function toggleFullscreen() {
@@ -1090,7 +1105,7 @@
       if (!time) return;
       const row = time.closest('tr');
       row.dataset.timeBasis = time.dataset.time;
-      syncBellTime(row, readTime(durationMinutes, durationSeconds));
+      syncBellTime(row);
       clearErrors();
     });
     byId('add-bell').addEventListener('click', () => {
@@ -1102,36 +1117,26 @@
     byId('test-bell').addEventListener('click', testBell);
     byId('restore').addEventListener('click', () => {
       stopTestBell();
-      showMessage(byId('audio-notice'), '');
+      showMessage('audio-notice', '');
       populateForm(defaultSettings());
     });
-    byId('cancel').addEventListener('click', () => {
-      stopTestBell();
-      dialog.close();
-    });
+    byId('cancel').addEventListener('click', closeSettings);
     dialog.addEventListener('cancel', stopTestBell);
     volumeInput.addEventListener('input', updateVolume);
     fontInput.addEventListener('change', updateFontPreview);
     form.addEventListener('submit', saveSettings);
 
+    const shortcuts = new Map([['r', reset], ['f', toggleFullscreen], ['s', openSettings]]);
     document.addEventListener('keydown', (event) => {
       if (dialog.open || event.defaultPrevented || event.isComposing || event.ctrlKey || event.metaKey || event.altKey ||
           event.target.closest('input, select, textarea, [contenteditable]')) return;
-      switch (event.key.toLowerCase()) {
-        case ' ':
-          if (event.target.closest('summary')) return;
-          event.preventDefault();
-          if (!event.repeat) state === 'running' ? pause() : start();
-          break;
-        case 'r':
-          if (!event.repeat) reset();
-          break;
-        case 'f':
-          if (!event.repeat) toggleFullscreen();
-          break;
-        case 's':
-          if (!event.repeat) openSettings();
-          break;
+      const key = event.key.toLowerCase();
+      if (key === ' ') {
+        if (event.target.closest('summary')) return;
+        event.preventDefault();
+        if (!event.repeat) (state === 'running' ? pause : start)();
+      } else if (!event.repeat) {
+        shortcuts.get(key)?.();
       }
     });
 
