@@ -25,7 +25,7 @@
       --gutter: clamp(10px, 1.52vw, 40px);
       --label-size: clamp(14px, min(3.48dvh, 3.1vw), 42px);
       display: grid;
-      grid-template-rows: minmax(42px, 10.1dvh) minmax(0, 1fr) minmax(52px, 19.2dvh) minmax(28px, 6.85dvh) auto;
+      grid-template-rows: minmax(42px, 10.1dvh) minmax(0, 1fr) minmax(52px, 19.2dvh) minmax(28px, 6.85dvh);
       height: 100vh;
       height: 100dvh;
       padding-inline: var(--gutter);
@@ -186,43 +186,6 @@
       font-variant-numeric: tabular-nums;
     }
     .bell-item { white-space: nowrap; }
-    .accuracy-note {
-      position: relative;
-      justify-self: center;
-      margin-bottom: .5rem;
-      font-size: .875rem;
-      color: #ccc;
-    }
-    .accuracy-note > summary {
-      list-style: none;
-      padding: .3em .65em;
-      border: 1px solid #626262;
-      border-radius: 6px;
-    }
-    .accuracy-note > summary::-webkit-details-marker { display: none; }
-    .accuracy-note > summary:hover, .accuracy-note[open] > summary { background: #202020; color: #fff; }
-    .accuracy-marker { display: inline-block; margin-inline-start: .35em; font-size: .75em; }
-    .accuracy-note[open] .accuracy-marker { transform: rotate(180deg); }
-    .accuracy-copy {
-      position: absolute;
-      z-index: 1;
-      inset-block-end: calc(100% + .45rem);
-      inset-inline-start: 50%;
-      transform: translateX(-50%);
-      inline-size: min(33rem, calc(100vw - 2 * var(--gutter)));
-      max-block-size: min(58dvh, 24rem);
-      overflow-y: auto;
-      padding: .75rem 1rem;
-      border: 1px solid #626262;
-      border-radius: 8px;
-      background: #171717;
-      color: #eee;
-      line-height: 1.55;
-    }
-    .accuracy-copy p { margin: 0; }
-    .accuracy-copy p + p { margin-top: .65rem; }
-    .accuracy-copy [lang="ja"] { margin-top: .8rem; }
-
     dialog {
       width: min(42rem, calc(100% - 1.5rem));
       max-height: calc(100dvh - 1.5rem);
@@ -289,8 +252,24 @@
     .usage-notes kbd { color: #eee; font-size: .92em; font-weight: 600; white-space: nowrap; }
     .usage-translation { margin-top: .8rem; }
 
+    .accuracy-note { font-size: .875rem; color: #ccc; }
+    .accuracy-note > summary {
+      list-style: none;
+      padding: .3em .65em;
+      border: 1px solid #626262;
+      border-radius: 6px;
+    }
+    .accuracy-note > summary::-webkit-details-marker { display: none; }
+    .accuracy-note > summary:hover, .accuracy-note[open] > summary { background: #202020; color: #fff; }
+    .accuracy-marker { display: inline-block; margin-inline-start: .35em; font-size: .75em; }
+    .accuracy-note[open] .accuracy-marker { transform: rotate(180deg); }
+    .accuracy-copy { margin-top: .65rem; color: #eee; line-height: 1.55; }
+    .accuracy-copy p { margin: 0; }
+    .accuracy-copy p + p { margin-top: .65rem; }
+    .accuracy-copy [lang="ja"] { margin-top: .8rem; }
+
     @media (max-height: 460px) {
-      .screen { grid-template-rows: 36px minmax(0, 1fr) minmax(44px, 18dvh) minmax(22px, 7dvh) auto; }
+      .screen { grid-template-rows: 36px minmax(0, 1fr) minmax(44px, 18dvh) minmax(22px, 7dvh); }
       .top { padding-top: 0; }
       .readout { font-size: min(43dvh, calc(96vw / var(--digit-width))); transform: translateY(-1dvh); }
       .controls button { height: clamp(34px, 11dvh, 50px); }
@@ -330,19 +309,6 @@
     </div>
 
     <footer class="bell-summary" id="bell-summary" aria-label="Scheduled bells"></footer>
-    <details class="accuracy-note">
-      <summary lang="ja">時間の正確性に関して<span class="accuracy-marker" aria-hidden="true">▼</span></summary>
-      <div class="accuracy-copy" tabindex="0">
-        <p>The timer calculates the time remaining using <code>performance.now()</code>, a browser clock that runs independently of your computer’s time settings. Each screen update uses the latest elapsed time.</p>
-        <p>Paused time is excluded. The display rounds time remaining up and overtime down to whole seconds.</p>
-        <p>The timer detects when the remaining time reaches or passes a bell’s set time. Switching tabs or putting the computer to sleep can delay screen updates and bells. Keep this tab visible and the computer awake during a session.</p>
-        <div lang="ja">
-          <p>残り時間は、PCの時刻変更から独立したブラウザの時計 <code>performance.now()</code> で測った経過時間から計算します。画面の更新が遅れても、その遅れは計測に積み重なりません。</p>
-          <p>一時停止中の時間は計測から除きます。表示は残り時間を秒単位で切り上げ、超過時間を切り捨てます。</p>
-          <p>ベルは設定した残り時間を通過したことを検出して鳴らします。別のタブに切り替えたり、PCがスリープしたりすると、表示やベルが遅れることがあります。本番中はこのタブを表示し、PCをスリープさせないでください。</p>
-        </div>
-      </div>
-    </details>
   </div>
 
   <dialog id="settings-dialog" aria-labelledby="settings-title">
@@ -414,6 +380,19 @@
         <div class="usage-translation" lang="ja">
           <p><strong>Settings</strong> で発表時間とベルを設定します。ベルは残り時間か開始からの時間で入力できます。<strong>Test Bell</strong> で試聴し、<strong>Save</strong> で保存します。</p>
           <p><kbd>Space</kbd> 開始・一時停止 ／ <kbd>R</kbd> リセット ／ <kbd>F</kbd> 全画面切り替え ／ <kbd>S</kbd> 設定を開く ／ <kbd>Esc</kbd> 設定を閉じる</p>
+        </div>
+      </details>
+      <details class="accuracy-note">
+        <summary lang="ja">時間の正確性に関して<span class="accuracy-marker" aria-hidden="true">▼</span></summary>
+        <div class="accuracy-copy">
+          <p>The timer calculates the time remaining using <code>performance.now()</code>, a browser clock that runs independently of your computer’s time settings. Each screen update uses the latest elapsed time.</p>
+          <p>Paused time is excluded. The display rounds time remaining up and overtime down to whole seconds.</p>
+          <p>The timer detects when the remaining time reaches or passes a bell’s set time. Switching tabs or putting the computer to sleep can delay screen updates and bells. Keep this tab visible and the computer awake during a session.</p>
+          <div lang="ja">
+            <p>残り時間は、PCの時刻変更から独立したブラウザの時計 <code>performance.now()</code> で測った経過時間から計算します。画面の更新が遅れても、その遅れは計測に積み重なりません。</p>
+            <p>一時停止中の時間は計測から除きます。表示は残り時間を秒単位で切り上げ、超過時間を切り捨てます。</p>
+            <p>ベルは設定した残り時間を通過したことを検出して鳴らします。別のタブに切り替えたり、PCがスリープしたりすると、表示やベルが遅れることがあります。本番中はこのタブを表示し、PCをスリープさせないでください。</p>
+          </div>
         </div>
       </details>
     </form>
@@ -1132,7 +1111,6 @@
           event.target.closest('input, select, textarea, [contenteditable]')) return;
       const key = event.key.toLowerCase();
       if (key === ' ') {
-        if (event.target.closest('summary')) return;
         event.preventDefault();
         if (!event.repeat) (state === 'running' ? pause : start)();
       } else if (!event.repeat) {
