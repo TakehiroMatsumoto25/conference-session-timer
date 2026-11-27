@@ -267,6 +267,15 @@
       padding: .5rem .7rem;
     }
     dialog button:hover { background: #373737; }
+    #add-bell {
+      display: inline-flex;
+      align-items: center;
+      gap: .45em;
+      padding: .45rem .4rem;
+      border: 0;
+      background: transparent;
+    }
+    #add-bell:hover { text-decoration: underline; }
     .settings-footer {
       flex: none;
       padding: .75rem var(--settings-padding);
@@ -366,7 +375,7 @@
               <tbody id="bell-rows"></tbody>
             </table>
           </div>
-          <button id="add-bell" type="button">Add Bell</button>
+          <button id="add-bell" type="button"><span aria-hidden="true">+</span> Add Bell</button>
         </fieldset>
 
         <fieldset class="settings-section">
