@@ -284,23 +284,12 @@
     [aria-invalid="true"] { outline: 1px solid #ff9e9e; }
     .audio-notice { margin: 0; }
     .settings-help { display: grid; gap: .6rem; }
-    .usage-notes { color: #bdbdbd; font-size: .875rem; line-height: 1.5; }
+    .usage-notes, .accuracy-note { color: #bdbdbd; font-size: .875rem; line-height: 1.5; }
     summary { cursor: pointer; width: fit-content; }
     .usage-notes p { margin: .4rem 0; }
     .usage-notes kbd { color: #eee; font-size: .92em; font-weight: 600; white-space: nowrap; }
     .usage-translation { margin-top: .8rem; }
 
-    .accuracy-note { font-size: .875rem; color: #ccc; }
-    .accuracy-note > summary {
-      list-style: none;
-      padding: .3em .65em;
-      border: 1px solid #626262;
-      border-radius: 6px;
-    }
-    .accuracy-note > summary::-webkit-details-marker { display: none; }
-    .accuracy-note > summary:hover, .accuracy-note[open] > summary { background: #202020; color: #fff; }
-    .accuracy-marker { display: inline-block; margin-inline-start: .35em; font-size: .75em; }
-    .accuracy-note[open] .accuracy-marker { transform: rotate(180deg); }
     .accuracy-copy { margin-top: .65rem; color: #eee; line-height: 1.55; }
     .accuracy-copy p { margin: 0; }
     .accuracy-copy p + p { margin-top: .65rem; }
@@ -437,7 +426,7 @@
             </div>
           </details>
           <details class="accuracy-note">
-            <summary>Timing Accuracy<span class="accuracy-marker" aria-hidden="true">▼</span></summary>
+            <summary>Timing Accuracy</summary>
             <div class="accuracy-copy">
               <p>The timer calculates the time remaining using <code>performance.now()</code>, a browser clock that runs independently of your computer’s time settings. Each screen update uses the latest elapsed time.</p>
               <p>Paused time is excluded. The display rounds time remaining up and overtime down to whole seconds.</p>
