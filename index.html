@@ -227,10 +227,9 @@
     .duration, .sound-options { display: grid; gap: .65rem .9rem; }
     .duration { grid-template-columns: repeat(2, minmax(0, 7.4rem)); }
     .sound-options { grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr)); }
-    .sound-test, .display-options, .font-options { display: flex; flex-wrap: wrap; gap: .65rem 1rem; }
+    .sound-test, .font-options { display: flex; flex-wrap: wrap; gap: .65rem 1rem; }
     .sound-test { margin-top: .75rem; align-items: center; }
-    .display-options, .font-options { align-items: flex-end; }
-    .display-options { gap: .85rem 1.5rem; }
+    .font-options { align-items: flex-end; }
     .font-preview { font-size: 1.65rem; line-height: 1.55; }
     .field { display: grid; align-content: start; gap: .35rem; min-width: 0; color: #ddd; font-size: .925rem; }
     input[type="number"], select {
@@ -287,6 +286,7 @@
     .form-actions .cancel { margin-inline-start: auto; }
     .form-actions .save { background: #eee; border-color: #eee; color: #111; }
     .form-actions .save:hover { background: #ccc; }
+    .overtime-setting { margin-top: .85rem; }
     .check { display: flex; align-items: center; gap: .5rem; width: fit-content; }
     .check input { inline-size: 1rem; block-size: 1rem; margin: 0; }
     #overtime-help { margin: .25rem 0 0 1.5rem; }
@@ -358,6 +358,10 @@
             <label class="field">Minutes <input id="duration-minutes" type="number" min="0" step="1" required autofocus></label>
             <label class="field">Seconds <input id="duration-seconds" type="number" min="0" max="59" step="1" required></label>
           </div>
+          <div class="overtime-setting">
+            <label class="check"><input id="overtime" type="checkbox" aria-describedby="overtime-help"> Count overtime</label>
+            <p class="field-hint" id="overtime-help">Keep counting after 00:00.</p>
+          </div>
         </fieldset>
 
         <fieldset class="settings-section">
@@ -404,24 +408,18 @@
         </fieldset>
 
         <fieldset class="settings-section">
-          <legend>Display</legend>
-          <div class="display-options">
-            <div class="font-options">
-              <label class="field">Timer Font
-                <select id="timer-font">
-                  <option value="monospace">Monospace (slashed zero)</option>
-                  <option value="arial">Arial</option>
-                  <option value="system-sans">System Sans Serif</option>
-                  <option value="courier">Courier</option>
-                  <option value="verdana">Verdana</option>
-                </select>
-              </label>
-              <span class="font-preview timer-numerals" id="font-preview" aria-hidden="true">15:00</span>
-            </div>
-            <div>
-              <label class="check"><input id="overtime" type="checkbox" aria-describedby="overtime-help"> Count overtime</label>
-              <p class="field-hint" id="overtime-help">Keep counting after 00:00.</p>
-            </div>
+          <legend>Font</legend>
+          <div class="font-options">
+            <label class="field">Timer Font
+              <select id="timer-font">
+                <option value="monospace">Monospace (slashed zero)</option>
+                <option value="arial">Arial</option>
+                <option value="system-sans">System Sans Serif</option>
+                <option value="courier">Courier</option>
+                <option value="verdana">Verdana</option>
+              </select>
+            </label>
+            <span class="font-preview timer-numerals" id="font-preview" aria-hidden="true">15:00</span>
           </div>
         </fieldset>
 
