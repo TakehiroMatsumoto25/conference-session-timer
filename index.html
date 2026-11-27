@@ -221,6 +221,7 @@
     }
     .accuracy-copy p { margin: 0; }
     .accuracy-copy p + p { margin-top: .65rem; }
+    .accuracy-copy [lang="ja"] { margin-top: .8rem; }
 
     dialog {
       width: min(42rem, calc(100% - 1.5rem));
@@ -323,12 +324,17 @@
     </div>
 
     <footer class="bell-summary" id="bell-summary" aria-label="Scheduled bells"></footer>
-    <details class="accuracy-note" lang="ja">
-      <summary>時間の正確性に関して<span class="accuracy-marker" aria-hidden="true">▼</span></summary>
+    <details class="accuracy-note">
+      <summary lang="ja">時間の正確性に関して<span class="accuracy-marker" aria-hidden="true">▼</span></summary>
       <div class="accuracy-copy" tabindex="0">
-        <p>残り時間は、PCの時刻変更から独立したブラウザの時計 <code>performance.now()</code> で測った経過時間から計算します。画面の更新が遅れても、その遅れは計測に積み重なりません。</p>
-        <p>一時停止中の時間は計測から除きます。表示は残り時間を秒単位で切り上げ、超過時間を切り捨てます。</p>
-        <p>ベルは設定した残り時間を通過したことを検出して鳴らします。別のタブに切り替えたり、PCがスリープしたりすると、表示やベルが遅れることがあります。本番中はこのタブを表示し、PCをスリープさせないでください。</p>
+        <p>The timer calculates the time remaining using <code>performance.now()</code>, a browser clock that runs independently of your computer’s time settings. Each screen update uses the latest elapsed time.</p>
+        <p>Paused time is excluded. The display rounds time remaining up and overtime down to whole seconds.</p>
+        <p>The timer detects when the remaining time reaches or passes a bell’s set time. Switching tabs or putting the computer to sleep can delay screen updates and bells. Keep this tab visible and the computer awake during a session.</p>
+        <div lang="ja">
+          <p>残り時間は、PCの時刻変更から独立したブラウザの時計 <code>performance.now()</code> で測った経過時間から計算します。画面の更新が遅れても、その遅れは計測に積み重なりません。</p>
+          <p>一時停止中の時間は計測から除きます。表示は残り時間を秒単位で切り上げ、超過時間を切り捨てます。</p>
+          <p>ベルは設定した残り時間を通過したことを検出して鳴らします。別のタブに切り替えたり、PCがスリープしたりすると、表示やベルが遅れることがあります。本番中はこのタブを表示し、PCをスリープさせないでください。</p>
+        </div>
       </div>
     </details>
   </div>
