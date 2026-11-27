@@ -230,7 +230,7 @@
     .sound-test, .font-options { display: flex; flex-wrap: wrap; gap: .65rem 1rem; }
     .sound-test { margin-top: .75rem; align-items: center; }
     .font-options { align-items: flex-end; }
-    .font-preview { font-size: 1.65rem; line-height: 1.55; }
+    .font-preview { max-width: 100%; overflow-wrap: anywhere; font-size: 1.65rem; line-height: 1.55; }
     .field { display: grid; align-content: start; gap: .35rem; min-width: 0; color: #ddd; font-size: .925rem; }
     input[type="number"], select {
       width: 100%;
@@ -930,6 +930,7 @@
     function syncBellTimes() {
       const duration = readDuration();
       for (const row of bellRows.rows) syncBellTime(row, duration);
+      updateFontPreview();
       clearErrors();
     }
 
@@ -965,7 +966,10 @@
     }
 
     function updateFontPreview() {
-      byId('font-preview').dataset.timerFont = fontInput.value;
+      const preview = byId('font-preview');
+      const duration = readDuration();
+      preview.dataset.timerFont = fontInput.value;
+      preview.textContent = duration > 0 ? formatTime(duration) : '--:--';
     }
 
     function clearErrors() {
