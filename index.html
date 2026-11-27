@@ -255,11 +255,17 @@
     #interval::-webkit-inner-spin-button { opacity: 1; }
     input[type="range"], input[type="checkbox"] { accent-color: #ddd; }
     input[type="range"] { margin-block: .55rem; }
-    table { width: 100%; margin-bottom: .45rem; border-spacing: .4rem .45rem; table-layout: fixed; }
+    .bell-hint { margin: 0 0 .25rem; color: #bdbdbd; font-size: .875rem; }
+    .bell-table { overflow-x: auto; }
+    table { width: 100%; min-width: 24rem; margin-bottom: .45rem; border-spacing: .4rem .45rem; table-layout: fixed; }
     th { text-align: start; font-size: .875rem; color: #ccc; font-weight: 400; }
+    th:nth-last-child(2) { width: 3.8rem; }
     th:last-child { width: 4.45rem; }
     td { padding: 0; }
     td button { width: 100%; }
+    .bell-time { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: .25rem; }
+    .bell-time input { padding-inline: .4rem; }
+    .bell-time span { color: #aaa; }
     dialog button {
       border: 1px solid #737373;
       border-radius: 6px;
@@ -352,10 +358,13 @@
 
       <fieldset>
         <legend>Bells</legend>
-        <table>
-          <thead><tr><th scope="col">Remaining Min.</th><th scope="col">Remaining Sec.</th><th scope="col">Rings</th><th scope="col">Action</th></tr></thead>
-          <tbody id="bell-rows"></tbody>
-        </table>
+        <p class="bell-hint" id="bell-time-help">Edit either time. Changing the duration keeps the last time entered for each bell.</p>
+        <div class="bell-table">
+          <table aria-describedby="bell-time-help">
+            <thead><tr><th scope="col">Remaining (min:sec)</th><th scope="col">From Start (min:sec)</th><th scope="col">Rings</th><th scope="col">Action</th></tr></thead>
+            <tbody id="bell-rows"></tbody>
+          </table>
+        </div>
         <button id="add-bell" type="button">Add Bell</button>
       </fieldset>
 
@@ -400,10 +409,10 @@
 
       <details class="usage-notes">
         <summary>How to use</summary>
-        <p>Set the duration and bell times in <strong>Settings</strong>. Bell times use time remaining. Check the sound with <strong>Test Bell</strong>, then select <strong>Save</strong>.</p>
+        <p>Set the duration and bell times in <strong>Settings</strong>. Enter either the time remaining or the time from the start. Check the sound with <strong>Test Bell</strong>, then select <strong>Save</strong>.</p>
         <p><kbd>Space</kbd> start/pause · <kbd>R</kbd> reset · <kbd>F</kbd> toggle fullscreen · <kbd>S</kbd> open settings · <kbd>Esc</kbd> close settings</p>
         <div class="usage-translation" lang="ja">
-          <p><strong>Settings</strong> で発表時間とベルを設定します。ベルの時刻は残り時間です。<strong>Test Bell</strong> で試聴し、<strong>Save</strong> で保存します。</p>
+          <p><strong>Settings</strong> で発表時間とベルを設定します。ベルは残り時間か開始からの時間で入力できます。<strong>Test Bell</strong> で試聴し、<strong>Save</strong> で保存します。</p>
           <p><kbd>Space</kbd> 開始・一時停止 ／ <kbd>R</kbd> リセット ／ <kbd>F</kbd> 全画面切り替え ／ <kbd>S</kbd> 設定を開く ／ <kbd>Esc</kbd> 設定を閉じる</p>
         </div>
       </details>
@@ -412,9 +421,19 @@
 
   <template id="bell-row-template">
     <tr>
-      <td><input type="number" min="0" step="1" required></td>
-      <td><input type="number" min="0" max="59" step="1" required></td>
-      <td><input type="number" min="1" step="1" required></td>
+      <td>
+        <div class="bell-time" data-time="remaining">
+          <input type="number" min="0" step="1" required><span aria-hidden="true">:</span>
+          <input type="number" min="0" max="59" step="1" required>
+        </div>
+      </td>
+      <td>
+        <div class="bell-time" data-time="elapsed">
+          <input type="number" min="0" step="1" required><span aria-hidden="true">:</span>
+          <input type="number" min="0" max="59" step="1" required>
+        </div>
+      </td>
+      <td><input class="bell-rings" type="number" min="1" step="1" required></td>
       <td><button type="button">Delete</button></td>
     </tr>
   </template>
@@ -825,20 +844,62 @@
       }
     }
 
+    function readTime(minutes, seconds, label, reportError) {
+      const min = minutes.valueAsNumber;
+      const sec = seconds.valueAsNumber;
+      const validMinutes = integerInRange(min, 0, Math.floor(maxDuration / 60));
+      const validSeconds = integerInRange(sec, 0, 59);
+      if (!validMinutes) reportError?.(minutes, `${label} minutes must be a non-negative whole number within range.`);
+      if (!validSeconds) reportError?.(seconds, `${label} seconds must be a whole number from 0 to 59.`);
+      if (!validMinutes || !validSeconds) return NaN;
+      const total = min * 60 + sec;
+      if (total > maxDuration) {
+        reportError?.(minutes, `${label} exceeds the supported duration.`);
+        return NaN;
+      }
+      return total;
+    }
+
+    function writeTime(minutes, seconds, total) {
+      const valid = Number.isFinite(total) && total >= 0;
+      minutes.value = valid ? Math.floor(total / 60) : '';
+      seconds.value = valid ? String(total % 60).padStart(2, '0') : '';
+    }
+
+    function bellTimeFields(row, basis) {
+      return row.querySelectorAll(`[data-time="${basis}"] input`);
+    }
+
+    // 入力した側を基準にして、発表時間からもう一方の時刻を計算する。
+    function syncBellTime(row, duration) {
+      const basis = row.dataset.timeBasis;
+      const other = basis === 'elapsed' ? 'remaining' : 'elapsed';
+      const entered = readTime(...bellTimeFields(row, basis));
+      writeTime(...bellTimeFields(row, other), duration > 0 ? duration - entered : NaN);
+    }
+
+    function syncBellTimes() {
+      const duration = readTime(durationMinutes, durationSeconds);
+      for (const row of bellRows.rows) syncBellTime(row, duration);
+      clearErrors();
+    }
+
     function refreshBellRows() {
+      const labels = ['Remaining minutes', 'Remaining seconds', 'Minutes from start', 'Seconds from start', 'Rings'];
       Array.from(bellRows.rows).forEach((row, index) => {
-        const labels = ['Remaining minutes', 'Remaining seconds', 'Rings'];
         row.querySelectorAll('input').forEach((input, field) => input.setAttribute('aria-label', `Bell ${index + 1}: ${labels[field]}`));
         row.querySelector('button').setAttribute('aria-label', `Delete bell ${index + 1}`);
       });
     }
 
-    function addBell({ remaining = 0, rings = 1 } = {}) {
+    function addBell({ remaining = 0, rings = 1, basis = 'remaining' } = {}) {
       const row = byId('bell-row-template').content.firstElementChild.cloneNode(true);
-      const [minutes, seconds, count] = row.querySelectorAll('input');
-      minutes.value = Math.floor(remaining / 60);
-      seconds.value = remaining % 60;
-      count.value = rings;
+      row.dataset.timeBasis = basis === 'elapsed' ? 'elapsed' : 'remaining';
+      const remainingFields = bellTimeFields(row, 'remaining');
+      const duration = readTime(durationMinutes, durationSeconds);
+      writeTime(...remainingFields, remaining);
+      writeTime(...bellTimeFields(row, 'elapsed'), duration > 0 ? duration - remaining : NaN);
+      row.querySelector('.bell-rings').value = rings;
       row.querySelector('button').addEventListener('click', () => {
         const next = row.nextElementSibling || row.previousElementSibling;
         row.remove();
@@ -847,7 +908,7 @@
         (next?.querySelector('button') || byId('add-bell')).focus();
       });
       bellRows.append(row);
-      return minutes;
+      return remainingFields[0];
     }
 
     function updateVolume() {
@@ -915,38 +976,28 @@
 
       if (!soundOnly) {
         values.timerFont = fontInput.value;
-        function readTime(minutes, seconds, label) {
-          const min = minutes.valueAsNumber;
-          const sec = seconds.valueAsNumber;
-          if (!integerInRange(min, 0, Math.floor(maxDuration / 60))) error(minutes, `${label} minutes must be a non-negative whole number within range.`);
-          if (!integerInRange(sec, 0, 59)) error(seconds, `${label} seconds must be a whole number from 0 to 59.`);
-          if (minutes.hasAttribute('aria-invalid') || seconds.hasAttribute('aria-invalid')) return NaN;
-          const total = min * 60 + sec;
-          if (total > maxDuration) {
-            error(minutes, `${label} exceeds the supported duration.`);
-            return NaN;
-          }
-          return total;
-        }
-
-        values.duration = readTime(durationMinutes, durationSeconds, 'Presentation');
+        values.duration = readTime(durationMinutes, durationSeconds, 'Presentation', error);
         if (values.duration === 0) error(durationSeconds, 'Presentation Duration must be at least one second.');
         const times = new Map();
         Array.from(bellRows.rows).forEach((row, index) => {
-          const [minutes, seconds, count] = row.querySelectorAll('input');
+          const basis = row.dataset.timeBasis;
+          const [minutes, seconds] = bellTimeFields(row, basis);
+          const count = row.querySelector('.bell-rings');
           const label = `Bell ${index + 1}`;
-          const remaining = readTime(minutes, seconds, label);
+          const timeLabel = basis === 'elapsed' ? 'time from start' : 'remaining time';
+          const time = readTime(minutes, seconds, `${label} ${timeLabel}`, error);
+          const remaining = basis === 'elapsed' ? values.duration - time : time;
           const rings = count.valueAsNumber;
           if (!integerInRange(rings, 1)) error(count, `${label} rings must be a positive whole number within range.`);
-          if (remaining > values.duration) error(minutes, `${label} time must be within the presentation duration.`);
-          if (Number.isFinite(remaining)) {
+          if (time > values.duration) error(minutes, `${label} ${timeLabel} must be within the presentation duration.`);
+          if (Number.isFinite(remaining) && time <= values.duration) {
             if (times.has(remaining)) {
               error(minutes, `${label} is set to the same remaining time as Bell ${times.get(remaining)}.`);
             } else {
               times.set(remaining, index + 1);
             }
           }
-          values.bells.push({ remaining, rings });
+          values.bells.push({ remaining, rings, basis });
         });
         values.bells.sort((a, b) => b.remaining - a.remaining);
       }
@@ -1033,6 +1084,15 @@
       syncWakeLock();
     });
 
+    for (const input of [durationMinutes, durationSeconds]) input.addEventListener('input', syncBellTimes);
+    bellRows.addEventListener('input', (event) => {
+      const time = event.target.closest('.bell-time');
+      if (!time) return;
+      const row = time.closest('tr');
+      row.dataset.timeBasis = time.dataset.time;
+      syncBellTime(row, readTime(durationMinutes, durationSeconds));
+      clearErrors();
+    });
     byId('add-bell').addEventListener('click', () => {
       const input = addBell();
       refreshBellRows();
